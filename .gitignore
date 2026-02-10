@@ -1,0 +1,104 @@
+# ============================================================
+# OpenFOAM - general
+# ============================================================
+
+# Time directories (numerical results)
+[1-9]*/
+[1-9]*.[0-9]*/
+0.*
+!0.orig/
+!0/
+!0.org/
+
+# Processor directories (parallel runs)
+processor*/
+processors*/
+
+# Logs
+log.*
+*.log
+
+# Mesh and decomposition
+constant/polyMesh/points
+constant/polyMesh/faces
+constant/polyMesh/owner
+constant/polyMesh/neighbour
+constant/polyMesh/boundary
+
+# Dynamic mesh / runtime-generated data
+constant/polyMesh/sets
+constant/polyMesh/cellZones
+constant/polyMesh/faceZones
+constant/polyMesh/pointZones
+
+# Function objects output
+postProcessing/
+forces/
+probes/
+surfaces/
+
+# Reconstruction / sampling
+sets/
+surfaces/
+
+# ============================================================
+# Case-specific generated files
+# ============================================================
+
+# Decomposition and reconstruction
+decomposeParDict
+reconstructPar*
+
+# Restart and backup files
+*~
+*.bak
+*.old
+*.tmp
+
+# ============================================================
+# Large numerical outputs
+# ============================================================
+
+# Binary and field data
+*.foam
+*.vtk
+*.vtu
+*.raw
+*.dat
+
+# Compressed results
+*.gz
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# ============================================================
+# Python / scripting
+# ============================================================
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+
+# ============================================================
+# OS / editor
+# ============================================================
+
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ============================================================
+# Documentation build artifacts
+# ============================================================
+
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
