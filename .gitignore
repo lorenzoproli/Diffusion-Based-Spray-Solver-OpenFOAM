@@ -102,3 +102,17 @@ Thumbs.db
 *.out
 *.toc
 *.synctex.gz
+
+# ============================================================
+# OpenFOAM libraries (src/)
+# ============================================================
+
+# Build artifacts
+src/**/lnInclude/
+src/**/platforms/
+src/**/Make/linux*
+src/**/Make/*Opt
+src/**/Make/*Debug
+
+# Compilation logs
+src/**/log.*
