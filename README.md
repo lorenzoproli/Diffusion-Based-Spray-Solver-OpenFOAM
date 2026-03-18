@@ -1,31 +1,44 @@
-# CFD Analysis of Spray Injection Flows
+# Thesis Lagrangian Spray Solver – Crossflow Atomization
 
-This repository is dedicated to the CFD activity developed within the master thesis, focused on the numerical simulation of spray injection flows relevant to aerospace propulsion applications.
+This repository contains the development and validation of a custom Lagrangian spray solver based on OpenFOAM, carried out within a Master's thesis in Aerospace Engineering.
 
-The repository is used as a centralized environment to organize simulation cases, supporting scripts, and documentation related to the CFD campaign, ensuring consistency and traceability throughout the thesis work.
-
----
-
-## Scope of the Work
-
-The activities developed within this repository include:
-
-- setup and execution of CFD simulations of spray injection flows using OpenFOAM;
-- modeling of liquid injection, atomization, and spray–flow interaction under representative operating conditions;
-- definition and implementation of boundary conditions consistent with analytical and mission-level models;
-- verification of numerical behavior through comparison with reference configurations and literature data;
-- post-processing and physical interpretation of the results for thesis analysis and discussion.
-
-The repository is continuously updated as the work progresses and serves as a shared workspace between the student and the PhD supervisor.
+The focus of the work is the modelling of liquid atomization in subsonic crossflow conditions, with particular attention to breakup dynamics and droplet aerodynamic behaviour.
 
 ---
 
-## Notes
+## Project objectives
 
-Large raw simulation outputs are not stored in the repository. The focus is on case setup, configuration files, scripts, documentation, and post-processed results relevant for analysis.
+The main objectives of the project are:
+
+- Develop custom breakup and drag models for Lagrangian spray simulations
+- Improve the physical representation of crossflow atomization
+- Validate the numerical framework against literature and experimental data
+- Perform detailed post-processing of spray characteristics (e.g. D32, dispersion)
 
 ---
 
-## Authors
+## Key features
 
-Master thesis work developed at Politecnico di Torino.
+- Custom multi-stage breakup model:
+  - Liquid column behaviour
+  - Kelvin–Helmholtz wave stripping
+  - Primary breakup transition
+  - Secondary breakup (Pilch–Erdman regime)
+
+- Custom drag model:
+  - Blob/column regime
+  - Spherical droplet regime
+  - Deformation-based drag during breakup
+
+- Crossflow atomization setup:
+  - Gas–liquid interaction in subsonic regime
+  - Validation at LMR = 1
+
+- Structured repository for:
+  - solver development
+  - case management
+  - post-processing
+
+---
+
+## Repository structure
