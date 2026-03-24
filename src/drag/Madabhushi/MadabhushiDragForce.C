@@ -31,51 +31,120 @@
       - PE-active parcels use deformation / disc drag law
       - UgRef_ is read from the model coefficients dictionary and used
         consistently for tColumnBreakup evaluation
+
+    Modifications (Thesis — Madabhushi crossflow model):
+      FIX-DR1: weCritPE in the PE drag branch now uses the viscosity-corrected
+               formula We_crit = 12*(1 + 1.077*Oh^1.6) consistent with
+               Schmehl et al. (1998) Eq.(38), Lambert et al. (2019) onset
+               criterion, and the identical formula already used in
+               Madabhushi.C PATH 1 and PATH 4.
+               Previously the drag used the bare value 12.0, activating
+               deformed-disc drag for parcels that physically would not
+               deform (viscous droplets with Oh>0), causing an over-estimate
+               of the drag force on those parcels.
+
+      FIX-DR2: Debug output restructured as CSV (dragDebug.log).
+               One line per drag evaluation, separated by phase tag:
+               BLOB, PE_DEFORM, PE_DISC, PE_POST, CHILD, FALLBACK.
+               Readable with: awk -F, '$1=="BLOB"' dragDebug.log
+               Counter limit raised to 500 per tag for BLOB and PE phases
+               to capture the full deflection history.
+
+      NOTE-1:  Deformation ramp for We >= 100 uses (1 + 1.9*frac)*Dparent0,
+               which equals Madabhushi (2003) Eq. (6) evaluated at We = 100
+               as explicitly prescribed: "For We > 100, Eq. (6) is evaluated
+               at We = 100", giving 0.19*sqrt(100)=1.9. This is also
+               confirmed by the official Lambert/Fluent documentation figure.
+               [Madabhushi (2003), Eq. (6); Lambert et al. (2019), Fluent doc]
+
+      NOTE-2:  tb/t* piecewise correlations use strict-less-than (<) at
+               interval boundaries rather than the less-or-equal (<=) of
+               Pilch & Erdman (1987) Eqs. [8]-[12]. The physical impact is
+               negligible because the correlations are continuous at the
+               boundary values by construction. Documented here for
+               bibliographic completeness.
+               [Pilch & Erdman (1987), Eqs. [8]-[12]]
+
 \*------------------------------------------------------------------------------------------------------------*/
 
 #include "MadabhushiDragForce.H"
 #include "OFstream.H"
 #include "HashTable.H"
+#include "autoPtr.H"
 #include <map>
 
 namespace
 {
+    // -------------------------------------------------------------------------
+    // FIX-DR2: CSV drag log
+    // -------------------------------------------------------------------------
     Foam::OFstream& dragLogFile()
     {
         static Foam::autoPtr<Foam::OFstream> logPtr;
-
         if (!logPtr.valid())
         {
             logPtr.reset(new Foam::OFstream("dragDebug.log"));
+            // CSV header
+            logPtr() << "phase,"
+                     << "tc,user,ms,tCb,tSecStart,"
+                     << "d,dForceEff,dRefEff,"
+                     << "Re,ReEff,Cd,dragScale,"
+                     << "WeInitPE,tElapsed,tDef,tb"
+                     << Foam::endl;
         }
-
         return logPtr();
     }
 
-
-    inline void dragDebugLimited
+    inline void dragDebugCSV
     (
         const bool debug,
-        const Foam::word& tag,
-        const Foam::string& msg,
-        const int maxCount = 8
+        const Foam::word& phase,
+        const Foam::scalar tc,
+        const Foam::scalar userFlag,
+        const Foam::scalar msState,
+        const Foam::scalar tCb,
+        const Foam::scalar tSecStart,
+        const Foam::scalar d,
+        const Foam::scalar dForceEff,
+        const Foam::scalar dRefEff,
+        const Foam::scalar Re,
+        const Foam::scalar ReEff,
+        const Foam::scalar Cd,
+        const Foam::scalar dragScale,
+        const Foam::scalar WeInitPE  = 0.0,
+        const Foam::scalar tElapsed  = 0.0,
+        const Foam::scalar tDef      = 0.0,
+        const Foam::scalar tb        = 0.0,
+        const int maxCount           = 500
     )
     {
-        if (!debug)
-        {
-            return;
-        }
+        if (!debug) return;
 
         static std::map<std::string, int> counters;
+        std::string key(phase.c_str());
+        int& cnt = counters[key];
+        if (cnt >= maxCount) return;
+        ++cnt;
 
-        std::string key(tag.c_str());
-        int count = counters[key];
-
-        if (count < maxCount)
-        {
-            counters[key] = count + 1;
-            dragLogFile() << "[" << tag << "] " << msg << Foam::endl;
-        }
+        dragLogFile()
+            << phase      << ","
+            << tc         << ","
+            << userFlag   << ","
+            << msState    << ","
+            << tCb        << ","
+            << tSecStart  << ","
+            << d          << ","
+            << dForceEff  << ","
+            << dRefEff    << ","
+            << Re         << ","
+            << ReEff      << ","
+            << Cd         << ","
+            << dragScale  << ","
+            << WeInitPE   << ","
+            << tElapsed   << ","
+            << tDef       << ","
+            << tb
+            << Foam::endl;
     }
 }
 
@@ -132,7 +201,13 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcNonCoupled
     const scalar muc
 ) const
 {
-    return calcCoupled(p, td, dt, mass, Re, muc);
+    // The full drag force is computed inside calcCoupled.
+    // Returning Zero here prevents double-counting when both calcCoupled
+    // and calcNonCoupled are summed by SprayParcel::calcBreakup to
+    // evaluate tMom and the net aerodynamic force on the parcel.
+    // [OpenFOAM ParticleForce API convention: coupled = two-way exchange
+    //  with the carrier phase; non-coupled = one-way body force only]
+    return forceSuSp(Zero, 0.0);
 }
 
 
@@ -151,6 +226,10 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcCoupled
     const scalar rhoL  = p.rho();
     const scalar rhoG  = td.rhoc();
     const scalar dCurr = max(p.d(), 1.0e-12);
+
+    // Use the parcel's local (temperature-dependent) surface tension.
+    // [FIX Bug7: replaced hardcoded sigma_ with p.sigma()]
+    const scalar sigmaLocal = max(p.sigma(), VSMALL);
 
     // ------------------------------------------------------------------
     // Persistent parcel state written by the breakup model
@@ -177,8 +256,6 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcCoupled
     //   - positive PE start time
     //   - positive latched PE relative velocity
     // This avoids ambiguous entry into the PE drag branch.
-    //
-    // This is an implementation-state convention, not a model equation.
     // ------------------------------------------------------------------
     const bool isStdPEChild =
     (
@@ -192,37 +269,24 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcCoupled
     // ------------------------------------------------------------------
     // Secondary children not yet latched into standard PE retain
     // ordinary spherical drag.
-    //
-    // This branch is an implementation choice consistent with the breakup
-    // state machine: before explicit PE latch, children are treated as
-    // ordinary droplets.
     // ------------------------------------------------------------------
     if (userFlag > 0.5 && !isStdPEChild)
     {
         const scalar CdEffChild = CdSphere(Re);
 
-        dragDebugLimited
+        dragDebugCSV
         (
-            debug_,
-            "DRAG_CHILD",
-            "DRAG_CHILD "
-          + Foam::string("tc=") + Foam::name(tc)
-          + " user=" + Foam::name(userFlag)
-          + " ms="   + Foam::name(msState)
-          + " y="    + Foam::name(tSecStart)
-          + " d="    + Foam::name(dCurr)
-          + " Re="   + Foam::name(Re)
-          + " Cd="   + Foam::name(CdEffChild),
-            100
+            debug_, "CHILD",
+            tc, userFlag, msState, tColumnBreakup, tSecStart,
+            dCurr, dCurr, dCurr,
+            Re, Re, CdEffChild, 1.0
         );
 
-        forceSuSp value
+        return forceSuSp
         (
             Zero,
             mass*0.75*CdEffChild*Re*muc/(rhoL*sqr(dCurr))
         );
-
-        return value;
     }
 
     // ------------------------------------------------------------------
@@ -237,12 +301,8 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcCoupled
     // ------------------------------------------------------------------
     // Blob / intact liquid-column regime (core parcel only)
     //
-    // The liquid column is represented by a spherical computational parcel,
-    // but the drag coefficient is kept fixed at CdBlob_ = 1.48 to mimic the
-    // intact jet-column regime before column breakup.
-    //
-    // CdBlob_ = 1.48 is the value used in Madabhushi for the intact
-    // liquid-column regime and is also retained in Lambert's reformulation.
+    // CdBlob_ = 1.48: value used in Madabhushi (2003) and Lambert (2019)
+    // for the intact liquid-column regime.
     // [Madabhushi (2003), jet-regime description;
     //  Lambert et al. (2019), model summary for pre-column-breakup drag]
     // ------------------------------------------------------------------
@@ -255,212 +315,160 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcCoupled
 
         // Reynolds number rescaled consistently with the effective force
         // diameter used in the intact-column drag evaluation.
-        //
-        // This is a consistent implementation rescaling because the drag
-        // formula uses Dinj_ as effective aerodynamic diameter in the blob
-        // regime, while the parcel diameter may already differ numerically.
         ReEff = Re*(dForceEff/(dCurr + VSMALL));
 
-        dragDebugLimited
+        dragDebugCSV
         (
-            debug_,
-            "DRAG_BLOB",
-            "DRAG_BLOB "
-          + Foam::string("tc=") + Foam::name(tc)
-          + " tCb="       + Foam::name(tColumnBreakup)
-          + " dCurr="     + Foam::name(dCurr)
-          + " dForceEff=" + Foam::name(dForceEff)
-          + " Re="        + Foam::name(Re)
-          + " ReEff="     + Foam::name(ReEff)
-          + " Cd="        + Foam::name(CdEff),
-            100
+            debug_, "BLOB",
+            tc, userFlag, msState, tColumnBreakup, tSecStart,
+            dCurr, dForceEff, dRefEff,
+            Re, ReEff, CdEff, dragScale
         );
     }
 
     // ------------------------------------------------------------------
     // Pilch-Erdman deformation / disc-drag stage
     // Applies to:
-    //   - core parcel after column breakup
+    //   - core parcel after column breakup (userFlag=0, tSecStart>0)
     //   - child parcels already latched into standard PE breakup
     //
-    // Staged treatment:
-    //   1) deformation stage: sphere-to-disc transition
-    //   2) fully deformed stage: disc drag
-    //   3) after breakup completion: spherical drag again
+    // FIX-DR1: weCritPE now uses the viscosity-corrected formula
+    //   We_crit = 12 * (1 + 1.077 * Oh^1.6)
+    // consistent with Schmehl et al. (1998) Eq.(38),
+    // Lambert et al. (2019) onset criterion, and Madabhushi.C PATH 1/4.
+    // Previously used the bare value 12.0, which activated deformed-disc
+    // drag for viscous parcels that would not physically deform.
+    // [Schmehl et al. (1998), Eq. (38);
+    //  Lambert et al. (2019), PE onset criterion;
+    //  Pilch & Erdman (1987), Eq. (5)]
     // ------------------------------------------------------------------
     else if (tSecStart > 0.0)
     {
-        // Weber number evaluated with the latched PE-onset state
-        // (UrelPE0, Dparent0), not with the current parcel state.
+        // Weber number evaluated with the latched PE-onset state.
         // [Pilch & Erdman (1987), Eq. (1);
-        //  Schmehl et al. (1998), Eq. (37);
         //  Lambert et al. (2019), Eqs. (2)-(3)]
         const scalar WeInitPE =
-            rhoG*sqr(UrelPE0)*Dparent0/(sigma_ + VSMALL);
+            rhoG*sqr(UrelPE0)*Dparent0/(sigmaLocal + VSMALL);
 
-        // Baseline critical Weber threshold for PE breakup timing.
-        // Viscous effects are introduced separately through Oh / Wecorr.
-        // [Pilch & Erdman (1987), Eq. (5);
-        //  Schmehl et al. (1998), Eq. (38);
-        //  Lambert et al. (2019), onset criterion]
-        const scalar weCritPE = 12.0;
+        // FIX-DR1: Ohnesorge number at PE onset for viscous correction.
+        // Uses Dparent0 consistent with breakup model PATH 4 (Madabhushi.C).
+        // [Pilch & Erdman (1987), Eq. (2); Lambert et al. (2019), Eq. (8)]
+        const scalar ohPE0 =
+            rhoL > VSMALL
+          ? p.mu()/(Foam::sqrt(rhoL*Dparent0*sigmaLocal) + VSMALL)
+          : 0.0;
+
+        // FIX-DR1: viscosity-corrected critical Weber number.
+        // [Schmehl et al. (1998), Eq. (38);
+        //  Lambert et al. (2019), onset criterion;
+        //  Pilch & Erdman (1987), Eq. (5)]
+        const scalar weCritPE = 12.0*(1.0 + 1.077*pow(ohPE0, 1.6));
+
+        scalar tElapsedLog = 0.0;
+        scalar tDefLog     = 0.0;
+        scalar tbLog       = 0.0;
+        Foam::word phaseTag = "PE_POST";
 
         if (WeInitPE > weCritPE)
         {
             const scalar tElapsed = max(tc - tSecStart, 0.0);
+            tElapsedLog = tElapsed;
 
-            // Characteristic breakup timescale:
-            // t* = (D0 / Urel,0) * sqrt(rho_l / rho_g)
+            // Characteristic breakup timescale t*.
             // [Pilch & Erdman (1987), Eq. (3);
-            //  Schmehl et al. (1998), Eq. (41);
             //  Lambert et al. (2019), Eq. (3)]
             const scalar tStar =
                 (Dparent0/(UrelPE0 + VSMALL))
                *Foam::sqrt(rhoL/(rhoG + VSMALL));
 
-            // Deformation time:
-            // tDef = 1.6 t*
+            // Deformation time tDef = 1.6 t*.
             // [Schmehl et al. (1998), Eq. (42);
             //  Lambert et al. (2019), Eq. (2)]
             const scalar tDef = 1.6*tStar;
+            tDefLog = tDef;
 
-            // Numerical safeguard near threshold.
             scalar weExcess = max(WeInitPE - weCritPE, VSMALL);
 
-            // Dimensionless total breakup time:
-            // tb/t* = f(We)
+            // Dimensionless total breakup time tb/t* from Pilch-Erdman.
+            // NOTE-2: strict-less-than boundaries vs the <= of Pilch & Erdman
+            // (1987) Eqs. [8]-[12]; negligible physical impact — see header.
             // [Pilch & Erdman (1987), Eqs. (8)-(12);
-            //  Schmehl et al. (1998), Eq. (43);
-            //  Lambert et al. (2019), piecewise PE timing law]
+            //  Schmehl et al. (1998), Eq. (43)]
             scalar tbOverTstar = 5.5;
-
-            if (WeInitPE < 18.0)
-            {
-                tbOverTstar = 6.0*pow(weExcess, -0.25);
-            }
-            else if (WeInitPE < 45.0)
-            {
-                tbOverTstar = 2.45*pow(weExcess, 0.25);
-            }
-            else if (WeInitPE < 351.0)
-            {
-                tbOverTstar = 14.1*pow(weExcess, -0.25);
-            }
-            else if (WeInitPE < 2670.0)
-            {
-                tbOverTstar = 0.766*pow(weExcess, 0.25);
-            }
+            if      (WeInitPE < 18.0)   tbOverTstar = 6.0  *pow(weExcess, -0.25);
+            else if (WeInitPE < 45.0)   tbOverTstar = 2.45 *pow(weExcess,  0.25);
+            else if (WeInitPE < 351.0)  tbOverTstar = 14.1 *pow(weExcess, -0.25);
+            else if (WeInitPE < 2670.0) tbOverTstar = 0.766*pow(weExcess,  0.25);
 
             const scalar tb = tbOverTstar*tStar;
+            tbLog = tb;
 
             if (tElapsed < tDef)
             {
+                // Deformation stage: linear CD ramp sphere -> disc.
+                // [Lambert et al. (2019), deformed-droplet drag;
+                //  Schmehl et al. (1998), text after Eq. (46)]
                 const scalar frac = tElapsed/(tDef + VSMALL);
-
-                // Linear drag interpolation from spherical drag to disc drag
-                // during the deformation stage.
-                //
-                // The gradual transition itself is a closure used to model
-                // the aerodynamic response of the flattening droplet.
-                // [Schmehl et al. (1998), text after Eq. (46);
-                //  Efficient Numerical Calculation..., Sec. 4.3.3;
-                //  Lambert et al. (2019), deformed-droplet drag treatment]
                 CdEff = CdSphere(Re)*(1.0 - frac) + CdDisc_*frac;
 
-                // Deformed reference diameter during deformation.
-                // For We < 100:
-                //   Dmax/D0 = 1 + 0.19 sqrt(We)
-                // and the code applies a linear ramp from D0 to Dmax.
-                // For larger Weber numbers, deformation is capped at 2.9 D0.
-                // [Schmehl et al. (1998), Eq. (45);
-                //  Efficient Numerical Calculation..., Eq. (45);
-                //  Lambert et al. (2019), Eq. (9)]
-                if (WeInitPE < 100.0)
-                {
-                    dRefEff =
-                        (1.0 + 0.19*Foam::sqrt(WeInitPE)*frac)*Dparent0;
-                }
-                else
-                {
-                    dRefEff =
-                        (1.0 + 1.9*frac)*Dparent0;
-                }
+                // Deformed reference diameter ramp.
+                // For We < 100: D_ref(t) = (1 + 0.19*sqrt(We)*t/tDef)*D0
+                // For We >= 100: D_ref(t) = (1 + 1.9*t/tDef)*D0
+                //   where 1.9 = 0.19*sqrt(100), i.e. Madabhushi (2003)
+                //   Eq. (6) evaluated at We=100 as prescribed: "For We>100,
+                //   Eq. (6) is evaluated at We=100." Confirmed by the
+                //   official Lambert/Fluent documentation figure.
+                // [Madabhushi (2003), Eq. (6);
+                //  Schmehl et al. (1998), Eq. (45);
+                //  Lambert et al. (2019), Fluent documentation figure]
+                dRefEff = (WeInitPE < 100.0)
+                  ? (1.0 + 0.19*Foam::sqrt(WeInitPE)*frac)*Dparent0
+                  : (1.0 + 1.9*frac)*Dparent0;
+
+                phaseTag = "PE_DEFORM";
             }
             else if (tElapsed < tb)
             {
-                // Fully deformed stage: droplet treated as a disc
-                // with constant disc drag coefficient.
-                //
-                // The constant disc state after tDef is explicitly adopted
-                // in the Schmehl-based drag closure to bypass the complexity
-                // of the ongoing disintegration process.
-                // [Schmehl et al. (1998), text in Sec. 4.3.3;
-                //  Efficient Numerical Calculation..., Sec. 4.3.3;
-                //  Lambert et al. (2019), deformed-disc assumption]
+                // Fully deformed stage: constant disc drag.
+                // [Lambert et al. (2019), disc-drag assumption;
+                //  Schmehl et al. (1998), Sec. 4.3.3]
                 CdEff = CdDisc_;
-
-                // CdDisc_ = 1.2 corresponds to the deformed-disc drag value
-                // used in this PE framework.
-                // [Lambert et al. (2019), disc-drag assumption]
-                dRefEff =
-                    (WeInitPE < 100.0)
+                dRefEff = (WeInitPE < 100.0)
                   ? (1.0 + 0.19*Foam::sqrt(WeInitPE))*Dparent0
                   : 2.9*Dparent0;
+
+                phaseTag = "PE_DISC";
             }
             else
             {
-                // After the modeled breakup time is exceeded, the parcel is
-                // again treated with spherical drag, consistent with the fact
-                // that the tracked entity now represents a post-breakup
-                // fragment-like droplet.
+                // Post-breakup: spherical drag again.
                 CdEff   = CdSphere(Re);
                 dRefEff = dCurr;
+                phaseTag = "PE_POST";
             }
         }
         else
         {
-            // Below PE critical Weber threshold: no PE deformation drag.
+            // Below viscosity-corrected PE critical Weber threshold.
             CdEff   = CdSphere(Re);
             dRefEff = dCurr;
+            phaseTag = "PE_SUBCRIT";
         }
 
-        // In PE-active drag we keep the force denominator based on the
-        // current parcel diameter.
-        //
-        // This is an implementation choice consistent with the original
-        // OpenFOAM drag-force structure: the projected-area correction is
-        // accounted for separately through dragScale.
+        // Force diameter stays on current parcel; area correction via dragScale.
+        // [Schmehl et al. (1998), Eqs. (45)-(46);
+        //  Lambert et al. (2019), Eq. (9)]
         dForceEff = dCurr;
         ReEff     = Re;
-
-        // Aerodynamic area correction based on the ratio between deformed
-        // reference diameter and current parcel diameter:
-        // dragScale ~ (Dref / Dcurr)^2
-        //
-        // This directly reflects the use of the deformed projected area
-        // during the flattening stage.
-        // [Schmehl et al. (1998), Eq. (45) through Dmax;
-        //  Efficient Numerical Calculation..., Eqs. (45)-(46);
-        //  Lambert et al. (2019), Eq. (9)]
         dragScale = sqr(max(dRefEff, 1.0e-12)/dCurr);
 
-        dragDebugLimited
+        dragDebugCSV
         (
-            debug_,
-            "DRAG_PE",
-            "DRAG_PE "
-          + Foam::string("tc=")    + Foam::name(tc)
-          + " user="               + Foam::name(userFlag)
-          + " tCb="                + Foam::name(tColumnBreakup)
-          + " tSecStart="          + Foam::name(tSecStart)
-          + " Dparent0="           + Foam::name(Dparent0)
-          + " UrelPE0="            + Foam::name(UrelPE0)
-          + " WeInitPE="           + Foam::name(WeInitPE)
-          + " dCurr="              + Foam::name(dCurr)
-          + " dRefEff="            + Foam::name(dRefEff)
-          + " dragScale="          + Foam::name(dragScale)
-          + " Cd="                 + Foam::name(CdEff),
-            100
+            debug_, phaseTag,
+            tc, userFlag, msState, tColumnBreakup, tSecStart,
+            dCurr, dForceEff, dRefEff,
+            Re, ReEff, CdEff, dragScale,
+            WeInitPE, tElapsedLog, tDefLog, tbLog
         );
     }
     else
@@ -471,13 +479,19 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcCoupled
         dForceEff = dCurr;
         dragScale = 1.0;
         ReEff     = Re;
+
+        dragDebugCSV
+        (
+            debug_, "FALLBACK",
+            tc, userFlag, msState, tColumnBreakup, tSecStart,
+            dCurr, dForceEff, dRefEff,
+            Re, ReEff, CdEff, dragScale
+        );
     }
 
-    forceSuSp value
+    return forceSuSp
     (
         Zero,
         mass*0.75*CdEff*dragScale*ReEff*muc/(rhoL*sqr(dForceEff))
     );
-
-    return value;
 }
