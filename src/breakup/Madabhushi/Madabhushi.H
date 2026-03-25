@@ -181,19 +181,42 @@ public:
         }
 
         //- Number of pending children in the buffer
-        label nPendingChildren() const { return pendingChildren_.size(); }
+        //  FIX-BUG3: Added virtual/override to explicitly mark this as an
+        //  override of BreakupModel::nPendingChildren().
+        virtual label nPendingChildren() const override { return pendingChildren_.size(); }
 
-        //- Access pending child i
+        //- Access pending child i (internal convenience, not virtual)
         const pendingChild& getPendingChild(label i) const
         {
             return pendingChildren_[i];
+        }
+
+        //- Override base-class 4-argument version called by SprayParcel.C
+        //  FIX-BUG1: Without this override the base-class default returns
+        //  velocity=Zero, causing the parent velocity restore sentinel to
+        //  zero-out the parent U and all extra children to be lost.
+        virtual void getPendingChild
+        (
+            const label i,
+            scalar& d,
+            scalar& mass,
+            vector& velocity
+        ) const override
+        {
+            const pendingChild& c = pendingChildren_[i];
+            d        = c.d;
+            mass     = c.mass;
+            velocity = c.velocity;
         }
 
         //- user flag for pending children
         scalar pendingChildUserFlag() const { return pendingChildUserFlag_; }
 
         //- Clear the pending children buffer (after calcBreakup consumes them)
-        void clearPendingChildren() const { pendingChildren_.clear(); }
+        //  FIX-BUG2: Removed const qualifier to match the non-const base-class
+        //  virtual signature in BreakupModel.H. With const, this was a separate
+        //  function (not an override) and the base-class no-op was called instead.
+        virtual void clearPendingChildren() override { pendingChildren_.clear(); }
 };
 
 } // End namespace Foam
