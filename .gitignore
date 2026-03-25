@@ -116,6 +116,3 @@ src/**/Make/*Debug
 
 # Compilation logs
 src/**/log.*
-
-# Local run environments
-runs/
