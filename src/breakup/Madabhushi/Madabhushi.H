@@ -80,6 +80,8 @@ private:
 
         scalar UgRef_;
 
+        scalar rhoRef_;
+
         Switch debug_;
 
         // --- Mutable state for child signaling to calcBreakup ---

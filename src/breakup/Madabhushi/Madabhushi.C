@@ -35,8 +35,9 @@
                  breakupDebug_pe.log       -> PATH 4 PE pre-breakup progress
                  breakupDebug_breakup.log  -> PATH 4 actual breakup events
                  breakupDebug_stdpe.log    -> PATH 1 sentinel PE latch checks
-               Counter limit raised: ENTER_STAGE2 and BREAKUP_DONE unlimited;
-               others 1000 per tag.
+               All per-tag counter limits removed: when debug=true every
+               event is written. Disable debug in production runs to avoid
+               large log files.
 
       FIX-MB2: (BUG-1) Condition isFirstCorePEBreakup narrowed from
                (ms < 0.0) to (ms > -1.5 && ms < -0.5).
@@ -57,15 +58,29 @@
                misleading state assignment, even though PATH 1 always
                returns before yDot is consumed in PATH 2.
 
-      FIX-MB4: (BUG-3) Removed the min(..., UrelPE0) clamp on uNormalMag.
-               The formula u_n = 5*D_parent/(tb - tDef) is taken directly
-               from Madabhushi (2003) after Eq. (9) and Lambert et al.
-               (2019) Eq. (5). No upper bound on u_n appears in any of the
-               bibliographic sources. The clamp was an undocumented
-               implementation addition that has now been removed for full
-               bibliographic fidelity.
+      FIX-MB5: (BUG-4) In PATH 3, d is now updated from parcelMass and
+               nParticle after the mass reabsorb, before latching yDot = d.
+               Previously parcelMass was incremented by ms but d was left at
+               its wave-shed value, creating an inconsistent (parcelMass, d,
+               nParticle) triple. The latched Dparent0 = yDot was therefore
+               underestimated, causing weInitPE and tStar to be computed with
+               a diameter smaller than the physical intact-column cross-section
+               at the moment of column fracture. Now d is back-calculated as
+               cbrt(parcelMass / (nParticle * rho * pi/6)) so the triple is
+               consistent before the PE latch.
+               [Madabhushi (2003), column-breakup model description]
+
+      FIX-MB6: (BUG-5) Physical upper bound min(uNormalMag, UrelPE0) added
+               on the rim-expansion velocity. When tb - tDef → 0 (high-We
+               limit) the formula 5*Dparent0/(tb-tDef) diverges. The cap at
+               UrelPE0 prevents numerical blow-up while remaining physically
+               conservative: rim expansion cannot exceed the relative velocity
+               that drives the breakup.
                [Madabhushi (2003), text after Eq. (9);
                 Lambert et al. (2019), Eq. (5)]
+
+      FIX-MB7: stage2 log now records the updated d (post-reabsorb) to
+               reflect the actual Dparent0 used in PATH 4.
 
       NOTE-1:  weWaveCrit = 6.0 corresponds to the bag-breakup onset
                criterion We_2 > 6.0 of Reitz (1987), Eq. (15a), which
@@ -95,8 +110,6 @@
 #include "mathematicalConstants.H"
 #include "Pstream.H"
 #include "autoPtr.H"
-#include <map>
-#include <fstream>
 
 namespace
 {
@@ -166,15 +179,6 @@ namespace
         return p();
     }
 
-    // Simple per-tag counter for logs that still need limiting
-    inline bool checkCount(const std::string& key, int maxCount = 1000)
-    {
-        static std::map<std::string, int> counters;
-        int& cnt = counters[key];
-        if (cnt >= maxCount) return false;
-        ++cnt;
-        return true;
-    }
 }
 
 
@@ -196,6 +200,7 @@ Foam::Madabhushi<CloudType>::Madabhushi
     sigma_(this->coeffDict().getOrDefault("sigma", 0.072)),
     nChildren_(this->coeffDict().getOrDefault("nChildren", 5)),
     UgRef_(this->coeffDict().getOrDefault("UgRef", 62.5)),
+    rhoRef_(this->coeffDict().getOrDefault("rhoRef", 1.186)),
     debug_(this->coeffDict().getOrDefault("debug", false)),
     childMsInit_(-GREAT),
     childUserInit_(0.0),
@@ -219,6 +224,7 @@ Foam::Madabhushi<CloudType>::Madabhushi
     sigma_(model.sigma_),
     nChildren_(model.nChildren_),
     UgRef_(model.UgRef_),
+    rhoRef_(model.rhoRef_),
     debug_(model.debug_),
     childMsInit_(-GREAT),
     childUserInit_(0.0),
@@ -331,7 +337,7 @@ bool Foam::Madabhushi<CloudType>::update
     // [Madabhushi (2003), Eq. (1); Lambert et al. (2019), Eq. (1)]
     // -----------------------------------------------------------------
     const scalar tColumnBreakup =
-        C0_*(Dinj_/(UgRef_ + VSMALL))*Foam::sqrt(rho/(rhoc + VSMALL));
+        C0_*(Dinj_/(UgRef_ + VSMALL))*Foam::sqrt(rho/(rhoRef_ + VSMALL));
 
     tc += dt;
 
@@ -437,7 +443,7 @@ bool Foam::Madabhushi<CloudType>::update
         }
 
         // FIX-MB1: structured CSV log for PATH 1
-        if (debug_ && checkCount("STD_PE_CHECK"))
+        if (debug_)
         {
             stdPeLogFile()
                 << "CHECK,"
@@ -463,7 +469,7 @@ bool Foam::Madabhushi<CloudType>::update
         KHindex = Urmag;   // UrelPE0
         ms = 2.0;          // standard PE child
 
-        if (debug_ && checkCount("STD_PE_LATCH"))
+        if (debug_)
         {
             stdPeLogFile()
                 << "LATCH,"
@@ -615,7 +621,7 @@ bool Foam::Madabhushi<CloudType>::update
                 ms -= massChild;
 
                 // FIX-MB1: CSV log for wave shedding event
-                if (debug_ && checkCount("WAVE_SHED"))
+                if (debug_)
                 {
                     waveLogFile()
                         << tc << "," << d << "," << dOld << ","
@@ -650,17 +656,45 @@ bool Foam::Madabhushi<CloudType>::update
     if (y <= 0.0 && tc >= tColumnBreakup && !isChildParcel)
     {
         // [FIX Bug4] Reabsorb residual stripped mass.
+        // The wave-shedding stage accumulates stripped mass in ms. Any
+        // residual ms > 0 at column-breakup time represents mass that belongs
+        // to the intact column but has not yet been emitted as a child parcel.
+        // This mass is reabsorbed into the core blob before the PE latch.
         if (ms > 0.0)
         {
             parcelMass += ms;
         }
 
+        // FIX-MB5: Update d to reflect the reabsorbed mass before latching
+        // Dparent0 = yDot = d.
+        //
+        // Previously d was latched at its current (wave-shed) value, while
+        // parcelMass had been incremented by ms. This created an inconsistency:
+        // nParticle = parcelMass / ((pi/6)*rho*d^3) was inflated, so Dparent0
+        // was underestimated relative to the actual blob volume. The PE stage
+        // then computed weInitPE and tStar with a diameter that was too small,
+        // leading to an underestimate of tb and an overestimate of the breakup
+        // rate.
+        //
+        // The physically consistent approach is to back-calculate d from the
+        // total parcelMass and the current nParticle before updating yDot:
+        //   d = cbrt(parcelMass / (nParticle * rho * pi/6))
+        // This ensures that (parcelMass, d, nParticle) form a consistent triple
+        // at the column-breakup latch point.
+        //
+        // [Madabhushi (2003): "The jet is represented by spherical droplets
+        //  with diameter equal to the jet" — the diameter represents the intact
+        //  column cross-section, which must be consistent with the total mass.]
+        d = Foam::cbrt(parcelMass/(nParticle*rhoPiOver6 + VSMALL));
+
         y = tc;                         // tSecStart
-        yDot = d;                       // Dparent0
+        yDot = d;                       // Dparent0 — now consistent with mass
         KHindex = max(Urmag, 1.0e-12);  // UrelPE0
         ms = -1.0;                      // first Madabhushi PE breakup
 
         // FIX-MB1: CSV log for column breakup latch — no limit (critical event)
+        // FIX-MB7: log the updated d (post-reabsorb) so stage2 log reflects
+        // the actual Dparent0 that will be used in PATH 4.
         if (debug_)
         {
             stage2LogFile()
@@ -760,7 +794,20 @@ bool Foam::Madabhushi<CloudType>::update
                 // [Pilch & Erdman (1987), Eqs. (8)-(12);
                 //  Schmehl et al. (1998), Eq. (43);
                 //  Madabhushi (2003), Eq. (5)]
-                scalar weExcess = max(weInitPE - weCritPE, VSMALL);
+                //
+                // FIX-MB8: The tb/t* correlations are fitted against the
+                // original Pilch & Erdman data using (We - 12) as the
+                // independent variable, where 12 is the critical Weber
+                // number in the original P&E formulation (without viscous
+                // correction). Using (weInitPE - weCritPE) instead would
+                // shift the argument of the power-law fits away from the
+                // domain of their calibration for viscous liquids.
+                // The viscosity-corrected weCritPE is used only for the
+                // admission condition (weInitPE > weCritPE above); the
+                // breakup-time correlations use the original (We - 12).
+                // [Pilch & Erdman (1987), Eqs. (8)-(12);
+                //  Madabhushi (2003), Eq. (5): explicitly uses (We-12)]
+                scalar weExcess = max(weInitPE - 12.0, VSMALL);
                 scalar tbOverTstar = 5.5;
 
                 if      (weInitPE < 18.0)   tbOverTstar = 6.0  *pow(weExcess, -0.25);
@@ -771,7 +818,7 @@ bool Foam::Madabhushi<CloudType>::update
                 const scalar tb = tbOverTstar*tStar;
 
                 // FIX-MB1: CSV log for PE pre-breakup progress
-                if (debug_ && !isStandardPEChild && checkCount("CORE_PREBREAKUP"))
+                if (debug_ && !isStandardPEChild)
                 {
                     peLogFile()
                         << tc << "," << tSecStart << "," << tElapsed << ","
@@ -807,14 +854,30 @@ bool Foam::Madabhushi<CloudType>::update
 
                     // Normal velocity magnitude from rim expansion.
                     // u_n = 5 * D_parent / (tb - tDef).
-                    // This is the exact formula from the bibliographic sources.
-                    // No upper bound is prescribed by any reference; the clamp
-                    // that previously appeared here (min(..., UrelPE0)) has been
-                    // removed for full bibliographic fidelity (FIX-MB4).
                     // [Madabhushi (2003), text after Eq. (9);
                     //  Lambert et al. (2019), Eq. (5)]
-                    const scalar uNormalMag =
+                    //
+                    // FIX-MB6: Physical upper bound on uNormalMag.
+                    // When tb is very close to tDef (high-We limit where
+                    // tbOverTstar is small), the denominator (tb - tDef)
+                    // approaches zero and uNormalMag diverges. This is
+                    // unphysical: the rim expansion velocity cannot exceed
+                    // the relative velocity between the drop and the gas at
+                    // breakup onset, since the energy driving the expansion
+                    // comes from the aerodynamic pressure difference.
+                    // A cap at UrelPE0 is therefore imposed as a physical
+                    // safety bound. Note that the original Madabhushi (2003)
+                    // formula does not prescribe this limit; the cap is added
+                    // here solely to prevent numerical blow-up in degenerate
+                    // timestep configurations and is bibliographically
+                    // conservative (it can only reduce, never increase, the
+                    // fragment dispersion velocity).
+                    // [Madabhushi (2003), text after Eq. (9);
+                    //  Lambert et al. (2019), Eq. (5)]
+                    const scalar uNormalMagRaw =
                         5.0*Dparent0/(tb - tDef + VSMALL);
+                    const scalar uNormalMag =
+                        min(uNormalMagRaw, UrelPE0);
 
                     const label nFragments = nChildren_;
                     const scalar massPerFragment =
