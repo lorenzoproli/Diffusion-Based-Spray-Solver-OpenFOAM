@@ -47,8 +47,16 @@
                One line per drag evaluation, separated by phase tag:
                BLOB, PE_DEFORM, PE_DISC, PE_POST, CHILD, FALLBACK.
                Readable with: awk -F, '$1=="BLOB"' dragDebug.log
-               Counter limit raised to 500 per tag for BLOB and PE phases
-               to capture the full deflection history.
+               All per-tag counter limits removed: when debug=true every
+               evaluation is written. Disable debug in production runs.
+
+      FIX-DR3: weExcess for tb/t* correlations now uses (We - 12) as per
+               Pilch & Erdman (1987) original calibration and Madabhushi
+               (2003) Eq. (5), rather than (We - weCritPE). The viscosity-
+               corrected weCritPE is retained for the admission condition
+               only.
+               [Pilch & Erdman (1987), Eqs. (8)-(12);
+                Madabhushi (2003), Eq. (5)]
 
       NOTE-1:  Deformation ramp for We >= 100 uses (1 + 1.9*frac)*Dparent0,
                which equals Madabhushi (2003) Eq. (6) evaluated at We = 100
@@ -69,9 +77,7 @@
 
 #include "MadabhushiDragForce.H"
 #include "OFstream.H"
-#include "HashTable.H"
 #include "autoPtr.H"
-#include <map>
 
 namespace
 {
@@ -114,18 +120,13 @@ namespace
         const Foam::scalar WeInitPE  = 0.0,
         const Foam::scalar tElapsed  = 0.0,
         const Foam::scalar tDef      = 0.0,
-        const Foam::scalar tb        = 0.0,
-        const int maxCount           = 500
+        const Foam::scalar tb        = 0.0
     )
     {
         if (!debug) return;
 
-        static std::map<std::string, int> counters;
-        std::string key(phase.c_str());
-        int& cnt = counters[key];
-        if (cnt >= maxCount) return;
-        ++cnt;
-
+        // No per-tag counter limit: all events are written when debug=true.
+        // Disable debug in production runs to avoid large log files.
         dragLogFile()
             << phase      << ","
             << tc         << ","
@@ -164,6 +165,7 @@ Foam::MadabhushiDragForce<CloudType>::MadabhushiDragForce
     Dinj_(this->coeffs().getOrDefault("Dinj", 0.0016)),
     sigma_(this->coeffs().getOrDefault("sigma", 0.072)),
     UgRef_(this->coeffs().getOrDefault("UgRef", 62.5)),
+    rhoRef_(this->coeffs().getOrDefault("rhoRef", 1.186)),
     debug_(this->coeffs().getOrDefault("debug", false))
 {}
 
@@ -181,6 +183,7 @@ Foam::MadabhushiDragForce<CloudType>::MadabhushiDragForce
     Dinj_(df.Dinj_),
     sigma_(df.sigma_),
     UgRef_(df.UgRef_),
+    rhoRef_(df.rhoRef_),
     debug_(df.debug_)
 {}
 
@@ -246,7 +249,7 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcCoupled
     // [Madabhushi (2003), Eq. (1); Lambert et al. (2019), Eq. (1)]
     // ------------------------------------------------------------------
     const scalar tColumnBreakup =
-        C0_*(Dinj_/(UgRef_ + VSMALL))*Foam::sqrt(rhoL/(rhoG + VSMALL));
+        C0_*(Dinj_/(UgRef_ + VSMALL))*Foam::sqrt(rhoL/(rhoRef_ + VSMALL));
 
     // ------------------------------------------------------------------
     // Child parcels are treated as PE-active only after an explicit latch.
@@ -387,7 +390,13 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcCoupled
             const scalar tDef = 1.6*tStar;
             tDefLog = tDef;
 
-            scalar weExcess = max(WeInitPE - weCritPE, VSMALL);
+            // FIX-DR3: Use (We - 12) for the breakup-time correlations,
+            // consistent with the original P&E calibration and Madabhushi
+            // (2003) Eq. (5). The viscosity-corrected weCritPE is used only
+            // for the admission condition above.
+            // [Pilch & Erdman (1987), Eqs. (8)-(12);
+            //  Madabhushi (2003), Eq. (5)]
+            scalar weExcess = max(WeInitPE - 12.0, VSMALL);
 
             // Dimensionless total breakup time tb/t* from Pilch-Erdman.
             // NOTE-2: strict-less-than boundaries vs the <= of Pilch & Erdman
