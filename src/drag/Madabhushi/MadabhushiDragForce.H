@@ -35,9 +35,6 @@ class MadabhushiDragForce
         scalar CdDisc_;
         scalar C0_;
         scalar Dinj_;
-        scalar sigma_;
-        scalar UgRef_;
-        scalar rhoRef_;
         const Switch debug_;
 
 

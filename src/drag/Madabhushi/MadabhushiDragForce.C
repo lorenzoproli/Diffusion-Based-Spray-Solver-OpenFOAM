@@ -26,20 +26,20 @@
           * PE deformation / disc drag after STD_PE latch
 
     Notes:
-      - Blob regime uses the explicit vector force formulation of
-        Lambert et al. (2019), Fluent Theory Guide Eq. (12-452):
-          F_D = 0.5 * rhoG * CdBlob * A_ref * |Urel| * Urel
-        where A_ref = pi/4 * Dinj^2 is the projected area of the intact
-        liquid column.
-        The force is split into Su + Sp*(Uc-U) to keep tMom finite:
-          Sp  = 0.5 * rhoG * CdBlob * Aref * |Urel|          [scalar, N·s/m]
-          Su  = F_blob - Sp*(Uc-U)  = Zero  (identically)
-        Because Urel = Uc-U, F_blob = Sp*(Uc-U) exactly — so Su = Zero
-        and the full physics is captured in Sp alone, while tMom =
-        mass/Sp remains finite and well-conditioned.
-      - PE-active parcels use deformation / disc drag law
-      - UgRef_ is read from the model coefficients dictionary and used
-        consistently for tColumnBreakup evaluation
+      - All regimes use the standard DPM semi-implicit Sp formulation:
+          Sp = mass * (3/4) * Cd * Re * mu / (rhoL * d^2)
+        which corresponds to the particle acceleration equation from
+        KIVA [Reitz (1987), Eq. (20)]:
+          a = (3/4) * Cd * rhoG * |Urel| / (rhoL * d) * (Ug - Up)
+        The blob regime uses CdBlob (constant) in place of CdSphere(Re).
+        [Madabhushi (2003): "The drag coefficient, CD, on the droplet is
+         set to 1.48"; Reitz (1987), Eq. (20); Fluent Theory Guide
+         Eq. (12-447): "drag remains constant CD = 1.48"]
+      - PE-active parcels use deformation / disc drag law with area
+        correction dragScale = (Dref/d)^2 for the deformed cross-section.
+        [Schmehl et al. (1998), Eqs. (45)-(46); Lambert et al. (2019), Eq. (9)]
+      - tColumnBreakup uses local gas velocity mag(td.Uc()) and local
+        gas density td.rhoc(), consistent with the breakup model
 
     Modifications (Thesis — Madabhushi crossflow model):
       FIX-DR1: weCritPE in the PE drag branch now uses the viscosity-corrected
@@ -59,22 +59,6 @@
                (2003) Eq. (5).
                [Pilch & Erdman (1987), Eqs. (8)-(12);
                 Madabhushi (2003), Eq. (5)]
-
-      FIX-DR4: BLOB regime now implements Lambert et al. (2019) Fluent
-               Theory Guide Eq. (12-452) SCALED FOR PARCEL MASS:
-                 F_D = 0.5 * rhoG * CdBlob * (pi/4 * Dinj^2) * |Urel| * Urel
-               using the factored forceSuSp form:
-                 Sp = nParticle_equivalent * 0.5 * rhoG * CdBlob * Aref * |Urel|
-                 Su = Zero
-               Since Urel = Uc - U, the product Sp*(Uc-U) reproduces F_D
-               exactly. This form:
-               (a) scales with Dinj^2 as prescribed, not with d_curr^3;
-               (b) keeps tMom = mass/Sp finite and numerically stable;
-               (c) prevents two-way coupling lock-up by scaling the force
-                   to the actual mass fraction of the computational parcel.
-               [Lambert et al. (2019), Fluent Theory Guide Eq. (12-452);
-                Madabhushi (2003), jet-regime drag description;
-                Wu et al. (1997), column aerodynamic force balance, Eq. (1)]
 
       NOTE-1:  Deformation ramp for We >= 100 uses (1 + 1.9*frac)*Dparent0,
                i.e. Madabhushi (2003) Eq. (6) evaluated at We = 100.
@@ -171,9 +155,6 @@ Foam::MadabhushiDragForce<CloudType>::MadabhushiDragForce
     CdDisc_(this->coeffs().getOrDefault("CdDisc", 1.2)),
     C0_(this->coeffs().getOrDefault("C0", 3.44)),
     Dinj_(this->coeffs().getOrDefault("Dinj", 0.0016)),
-    sigma_(this->coeffs().getOrDefault("sigma", 0.072)),
-    UgRef_(this->coeffs().getOrDefault("UgRef", 62.5)),
-    rhoRef_(this->coeffs().getOrDefault("rhoRef", 1.186)),
     debug_(this->coeffs().getOrDefault("debug", false))
 {}
 
@@ -189,9 +170,6 @@ Foam::MadabhushiDragForce<CloudType>::MadabhushiDragForce
     CdDisc_(df.CdDisc_),
     C0_(df.C0_),
     Dinj_(df.Dinj_),
-    sigma_(df.sigma_),
-    UgRef_(df.UgRef_),
-    rhoRef_(df.rhoRef_),
     debug_(df.debug_)
 {}
 
@@ -247,11 +225,12 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcCoupled
     const scalar UrelPE0   = max(p.KHindex(), 1.0e-12);
 
     // ------------------------------------------------------------------
-    // Column-breakup time.
+    // Column-breakup time — uses local gas velocity and density.
     // [Madabhushi (2003), Eq. (1); Lambert et al. (2019), Eq. (1)]
     // ------------------------------------------------------------------
+    const scalar UgMag = mag(td.Uc());
     const scalar tColumnBreakup =
-        C0_*(Dinj_/(UgRef_ + VSMALL))*Foam::sqrt(rhoL/(rhoRef_ + VSMALL));
+        C0_*(Dinj_/(UgMag + VSMALL))*Foam::sqrt(rhoL/(rhoG + VSMALL));
 
     // ------------------------------------------------------------------
     // PE-active child check.
@@ -290,65 +269,36 @@ Foam::forceSuSp Foam::MadabhushiDragForce<CloudType>::calcCoupled
     // ------------------------------------------------------------------
     // BLOB / intact liquid-column regime (core parcel only).
     //
-    // FIX-DR4: implement Lambert et al. (2019) Eq. (12-452):
+    // Standard DPM drag with constant CdBlob in place of CdSphere(Re).
+    // This is the formulation used in KIVA [Reitz (1987), Eq. (20)] and
+    // in Fluent DPM, within which Madabhushi calibrated CdBlob = 1.48.
     //
-    //   F_D = 0.5 * rhoG * CdBlob * Aref * |Urel| * Urel
+    // Sp = mass * (3/4) * CdBlob * Re * mu / (rhoL * d^2)
+    //    = mass * (3/4) * CdBlob * rhoG * |Urel| / (rhoL * d)
     //
-    // with Aref = pi/4 * Dinj^2.
+    // Acceleration: a = (3/4) * CdBlob * rhoG * |Urel| / (rhoL * d)
+    // As wave stripping reduces d while nParticle stays constant,
+    // a scales as 1/d — the blob accelerates as it becomes lighter.
     //
-    // Since Urel = Uc - U, this is factored as:
-    //
-    //   F_D = Sp * (Uc - U)   with   Sp = 0.5 * rhoG * CdBlob * Aref * |Urel|
-    //
-    // The forceSuSp API then gives: Su = Zero, Sp = scalar above.
-    // This is MATHEMATICALLY IDENTICAL to the explicit vector form, and:
-    //   (a) scales with Dinj^2 as prescribed by Lambert, not d_curr^3;
-    //   (b) keeps tMom = mass/Sp finite — no FPE crash;
-    //   (c) prevents two-way coupling lock-up by scaling the force
-    //       to the actual mass fraction of the computational parcel.
-    //
-    // [Lambert et al. (2019), Fluent Theory Guide Eq. (12-452);
-    //  Madabhushi (2003), jet-regime drag;
-    //  Wu et al. (1997), Eq. (1)]
+    // [Madabhushi (2003): "The drag coefficient, CD, on the droplet
+    //  is set to 1.48 to simulate the motion of liquid jet in crossflow";
+    //  Reitz (1987), Eq. (20); Fluent Theory Guide Eq. (12-447)]
     // ------------------------------------------------------------------
     if (userFlag < 0.5 && tSecStart <= 0.0 && tc < tColumnBreakup)
     {
-        // |Urel| = magnitude of relative velocity (gas - parcel)
-        const scalar Urmag_local = mag(td.Uc() - p.U()) + VSMALL;
-
-        // Calcolo il volume e la massa di un singolo blob fisico ideale
-        const scalar volume_blob = constant::mathematical::pi / 6.0 * pow3(Dinj_);
-        const scalar mass_blob = rhoL * volume_blob;
-        
-        // Frazione di blob fisico contenuta in questo parcel computazionale
-        // (equivale a nParticle se d_parcel fosse forzato a Dinj)
-        const scalar nParticle_equivalent = mass / (mass_blob + VSMALL);
-
-        // Projected area of the intact liquid column: A_ref = pi/4 * Dinj^2
-        // [Lambert et al. (2019), Fluent Theory Guide Eq. (12-453)]
-        const scalar Aref =
-            constant::mathematical::pi / 4.0 * sqr(Dinj_);
-
-        // Sp coefficient: F_D = Sp * (Uc - U)
-        // [Lambert et al. (2019), Eq. (12-452)]
-        const scalar SpBlob =
-            nParticle_equivalent * 0.5 * rhoG * CdBlob_ * Aref * Urmag_local;
-
-        // Effective Re with Dinj for debug log only
-        const scalar ReEff_log =
-            rhoG * Urmag_local * Dinj_ / (muc + VSMALL);
-
         dragDebugCSV
         (
             debug_, "BLOB",
             tc, userFlag, msState, tColumnBreakup, tSecStart,
-            dCurr, Dinj_, Dinj_,
-            Re, ReEff_log, CdBlob_, 1.0
+            dCurr, dCurr, dCurr,
+            Re, Re, CdBlob_, 1.0
         );
 
-        // Su = Zero, Sp = SpBlob  →  force = SpBlob*(Uc-U) = F_D exactly
-        // tMom = mass/SpBlob  →  finite and physically meaningful
-        return forceSuSp(Zero, SpBlob);
+        return forceSuSp
+        (
+            Zero,
+            mass*0.75*CdBlob_*Re*muc/(rhoL*sqr(dCurr))
+        );
     }
 
     // ------------------------------------------------------------------
