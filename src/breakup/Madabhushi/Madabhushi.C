@@ -197,10 +197,7 @@ Foam::Madabhushi<CloudType>::Madabhushi
     b0_(this->coeffDict().getOrDefault("b0", 0.61)),
     b1_(this->coeffDict().getOrDefault("b1", 10.0)),
     Dinj_(this->coeffDict().getOrDefault("Dinj", 0.0016)),
-    sigma_(this->coeffDict().getOrDefault("sigma", 0.072)),
     nChildren_(this->coeffDict().getOrDefault("nChildren", 5)),
-    UgRef_(this->coeffDict().getOrDefault("UgRef", 62.5)),
-    rhoRef_(this->coeffDict().getOrDefault("rhoRef", 1.186)),
     debug_(this->coeffDict().getOrDefault("debug", false)),
     childMsInit_(-GREAT),
     childUserInit_(0.0),
@@ -221,10 +218,7 @@ Foam::Madabhushi<CloudType>::Madabhushi
     b0_(model.b0_),
     b1_(model.b1_),
     Dinj_(model.Dinj_),
-    sigma_(model.sigma_),
     nChildren_(model.nChildren_),
-    UgRef_(model.UgRef_),
-    rhoRef_(model.rhoRef_),
     debug_(model.debug_),
     childMsInit_(-GREAT),
     childUserInit_(0.0),
@@ -336,8 +330,10 @@ bool Foam::Madabhushi<CloudType>::update
     // instantaneous parcel-relative velocity.
     // [Madabhushi (2003), Eq. (1); Lambert et al. (2019), Eq. (1)]
     // -----------------------------------------------------------------
+    // Local gas velocity magnitude: Ug = U_droplet - Urel = U_gas (lab frame)
+    const scalar UgMag = mag(U - Urel);
     const scalar tColumnBreakup =
-        C0_*(Dinj_/(UgRef_ + VSMALL))*Foam::sqrt(rho/(rhoRef_ + VSMALL));
+        C0_*(Dinj_/(UgMag + VSMALL))*Foam::sqrt(rho/(rhoc + VSMALL));
 
     tc += dt;
 
@@ -699,7 +695,7 @@ bool Foam::Madabhushi<CloudType>::update
         {
             stage2LogFile()
                 << tc << "," << tColumnBreakup << "," << rhoc << ","
-                << UgRef_ << "," << d << "," << Urmag << "," << Urmag
+                << UgMag << "," << d << "," << Urmag << "," << Urmag
                 << Foam::endl;
         }
     }

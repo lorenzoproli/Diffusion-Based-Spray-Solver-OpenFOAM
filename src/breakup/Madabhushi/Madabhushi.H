@@ -72,15 +72,8 @@ private:
         // Injector diameter
         scalar Dinj_;
 
-        // Surface tension
-        scalar sigma_;
-
         //- Number of child parcels at catastrophic breakup (default 5)
         label nChildren_;
-
-        scalar UgRef_;
-
-        scalar rhoRef_;
 
         Switch debug_;
 
@@ -213,10 +206,6 @@ public:
 
         //- user flag for pending children
         scalar pendingChildUserFlag() const { return pendingChildUserFlag_; }
-
-        //- Clear the pending children buffer (after calcBreakup consumes them)
-        //  FIX-BUG2: Removed const qualifier to match the non-const base-class
-        //  virtual signature in BreakupModel.H. With const, this was a separate
         //  function (not an override) and the base-class no-op was called instead.
         virtual void clearPendingChildren() override { pendingChildren_.clear(); }
 };
