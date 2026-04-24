@@ -82,6 +82,30 @@
       FIX-MB7: stage2 log now records the updated d (post-reabsorb) to
                reflect the actual Dparent0 used in PATH 4.
 
+      FIX-MB9: (BUG-6) STD_PE child relatch after breakup now applies
+               the same We > Wec AND d > dStable admission criteria
+               used by PATH 1 for sentinel children.
+               Previously, Fragment #1 of a STD_PE breakup event was
+               unconditionally relatched into a new PE cycle (ms=2.0)
+               regardless of whether the post-breakup diameter was
+               already below the maximum stable diameter or the local
+               Weber number had dropped below Wec. This caused an
+               unlimited chain of PE breakup cycles on already-stable
+               fragments, systematically underestimating D32 in the
+               near-field region (z = 12-25 mm).
+               The fix mirrors exactly the PATH 1 admission logic:
+               if the post-breakup fragment satisfies We > Wec AND
+               d > dStable it is relatched (ms=2.0); otherwise it
+               becomes a post-cat sentinel (ms=-20.0) and is subject
+               to the standard PATH 1 evaluation on subsequent steps.
+               Instantaneous Urmag and d are used (consistent with
+               PATH 1), not the frozen UrelPE0/Dparent0 of the current
+               PE cycle.
+               [Pilch & Erdman (1987), Eqs. (20) and (33):
+                breakup ceases when all fragments are smaller than the
+                maximum stable diameter; OpenFOAM PilchErdman.C: same
+                dStable check applied before every breakup update]
+
       NOTE-1:  weWaveCrit = 6.0 corresponds to the bag-breakup onset
                criterion We_2 > 6.0 of Reitz (1987), Eq. (15a), which
                defines the minimum gas-side Weber number for wave-shedding
@@ -934,10 +958,101 @@ bool Foam::Madabhushi<CloudType>::update
 
                     if (isStandardPEChild)
                     {
-                        y = tc;
-                        yDot = d;
-                        KHindex = Urmag;
-                        ms = 2.0;
+                        // FIX-MB9: Apply the same We > Wec AND d > dStable
+                        // admission criteria used by PATH 1 for sentinels.
+                        // Previously the relatch was unconditional, causing
+                        // already-stable fragments to re-enter PE cycles
+                        // indefinitely and systematically underestimating D32.
+                        // Instantaneous Urmag and d are used, consistent with
+                        // the PATH 1 evaluation logic.
+                        // [Pilch & Erdman (1987), Eqs. (20) and (33)]
+                        const scalar weCurrRelatch =
+                            rhoc*sqr(Urmag)*d/(sigma + VSMALL);
+
+                        const scalar ohCurrRelatch =
+                            mu/(Foam::sqrt(rho*d*sigma) + VSMALL);
+
+                        const scalar weCritRelatch =
+                            12.0*(1.0 + 1.077*pow(ohCurrRelatch, 1.6));
+
+                        bool allowRelatch = false;
+
+                        if (weCurrRelatch > weCritRelatch)
+                        {
+                            scalar taubBarRelatch = 5.5;
+
+                            if (weCurrRelatch < 2670.0)
+                            {
+                                if (weCurrRelatch > 351.0)
+                                {
+                                    taubBarRelatch =
+                                        0.766*pow(
+                                            max(weCurrRelatch - 12.0, VSMALL),
+                                            0.25);
+                                }
+                                else if (weCurrRelatch > 45.0)
+                                {
+                                    taubBarRelatch =
+                                        14.1*pow(
+                                            max(weCurrRelatch - 12.0, VSMALL),
+                                            -0.25);
+                                }
+                                else if (weCurrRelatch > 18.0)
+                                {
+                                    taubBarRelatch =
+                                        2.45*pow(
+                                            max(weCurrRelatch - 12.0, VSMALL),
+                                            0.25);
+                                }
+                                else if (weCurrRelatch > 12.0)
+                                {
+                                    taubBarRelatch =
+                                        6.0*pow(
+                                            max(weCurrRelatch - 12.0, VSMALL),
+                                            -0.25);
+                                }
+                            }
+
+                            const scalar rho12Relatch =
+                                Foam::sqrt(max(rhoc/(rho + VSMALL), VSMALL));
+
+                            const scalar VdRelatch =
+                                Urmag*rho12Relatch
+                               // B1PE=0.375, B2PE=0.2274 [OpenFOAM PilchErdman.C]
+                               // redeclared as literals — B1PE/B2PE are local to PATH 1 scope
+                               *(0.375*taubBarRelatch
+                               + 0.2274*sqr(taubBarRelatch));
+
+                            const scalar Vd1Relatch =
+                                max(
+                                    sqr(1.0 - VdRelatch/(Urmag + VSMALL)),
+                                    SMALL);
+
+                            const scalar dStableRelatch =
+                                weCritRelatch*sigma
+                               /(Vd1Relatch*rhoc*sqr(Urmag) + VSMALL);
+
+                            allowRelatch = (d > dStableRelatch);
+                        }
+
+                        if (allowRelatch)
+                        {
+                            // Fragment still unstable: relatch for new PE cycle.
+                            y       = tc;
+                            yDot    = d;
+                            KHindex = Urmag;
+                            ms      = 2.0;
+                        }
+                        else
+                        {
+                            // Fragment stable or sub-critical: becomes post-cat
+                            // sentinel. PATH 1 will re-evaluate on subsequent
+                            // steps if local conditions change.
+                            y       = 0.0;
+                            yDot    = 0.0;
+                            KHindex = 0.0;
+                            ms      = -20.0;
+                        }
                     }
                     else
                     {
