@@ -70,14 +70,22 @@
                consistent before the PE latch.
                [Madabhushi (2003), column-breakup model description]
 
-      FIX-MB6: (BUG-5) Physical upper bound min(uNormalMag, UrelPE0) added
-               on the rim-expansion velocity. When tb - tDef → 0 (high-We
-               limit) the formula 5*Dparent0/(tb-tDef) diverges. The cap at
-               UrelPE0 prevents numerical blow-up while remaining physically
-               conservative: rim expansion cannot exceed the relative velocity
-               that drives the breakup.
+      FIX-MB6: Removed the previous cap min(uNormalMagRaw, UrelPE0)
+               from the rim-expansion velocity. The implemented value now
+               follows directly the Madabhushi/Lambert expression
+               u_n = 5*Dparent0/(tb - tDef), with only VSMALL in the
+               denominator for numerical protection.
                [Madabhushi (2003), text after Eq. (9);
                 Lambert et al. (2019), Eq. (5)]
+
+      FIX-MB11: Fragment #1 STD_PE relatch now uses the actual slip velocity
+                of the newly generated fragment, reconstructed as
+                UrelFrag0 = UFrag[0] - UgasLocal, instead of the pre-breakup
+                parent Urmag. The relatch dStable formula has also been made
+                identical to PATH 1: WeCrit is used only for admission, while
+                dStable uses the inviscid critical Weber number 12.
+                This prevents already-stable fragments from being re-latched
+                due to an obsolete pre-breakup relative velocity.
 
       FIX-MB7: stage2 log now records the updated d (post-reabsorb) to
                reflect the actual Dparent0 used in PATH 4.
@@ -455,9 +463,18 @@ bool Foam::Madabhushi<CloudType>::update
                 Urmag*rho12*(B1PE*taubBar + B2PE*sqr(taubBar));
 
             // Maximum stable diameter for the current child state.
+            // P&E Eq.(33) uses We_c=12 (inviscid); viscous correction applies
+            // only to the admission check above, not to d_stable.
             // [Pilch & Erdman (1987), Eq. (33)]
-            const scalar Vd1 = max(sqr(1.0 - Vd/(Urmag + VSMALL)), SMALL);
-            dStable = weCritCurr*sigma/(Vd1*rhoc*sqr(Urmag) + VSMALL);
+            // FIX-MB10: clamp to [0,1] before squaring. When Vd >= Urmag
+            // (fragment fully decelerates within tb, which occurs as We->12+
+            // because taubBar diverges), children emerge at near-zero relative
+            // velocity -> all children stable -> dStable must be GREAT.
+            // Without the clamp, sqr of a negative gives large Vd1 -> tiny
+            // dStable -> spurious near-threshold breakup.
+            const scalar Vd1 = max(
+                sqr(max(1.0 - Vd/(Urmag + VSMALL), 0.0)), SMALL);
+            dStable = 12.0*sigma/(Vd1*rhoc*sqr(Urmag) + VSMALL);
 
             allowStdPE = (d > dStable);
         }
@@ -773,7 +790,7 @@ bool Foam::Madabhushi<CloudType>::update
                   : 2.9*Dparent0;
 
                 // Ohnesorge number based on deformed reference diameter.
-                // [Lambert et al. (2019), Eq. (8)]
+                // [Lambert et al. (2019), Eq. (8): Oh = mu/sqrt(rho*D_ref*sigma)]
                 const scalar ohPE =
                     mu/(Foam::sqrt(rho*dRefPE*sigma) + VSMALL);
 
@@ -852,9 +869,16 @@ bool Foam::Madabhushi<CloudType>::update
                 // =====================================================
                 // Breakup event
                 // =====================================================
-                if (tElapsed >= tb && d > 2.0e-6)
+                if (tElapsed >= tb)
                 {
                     const vector Uparent0 = U;
+
+                    // Reconstruct the local gas velocity at the breakup event.
+                    // Urel is passed as Up - Ug, hence Ug = Up - Urel.
+                    // This is later used to compute the real slip velocity of
+                    // fragment #1 after its rim-expansion velocity is assigned.
+                    const vector UgasLocal = Uparent0 - Urel;
+
                     const scalar totalMassToBreak =
                         nParticle*rhoPiOver6*pow3(d);
 
@@ -874,30 +898,13 @@ bool Foam::Madabhushi<CloudType>::update
 
                     // Normal velocity magnitude from rim expansion.
                     // u_n = 5 * D_parent / (tb - tDef).
+                    // No cap with UrelPE0 is applied: this follows the
+                    // Madabhushi/Lambert formulation directly. VSMALL is kept
+                    // only to avoid division by zero in degenerate timesteps.
                     // [Madabhushi (2003), text after Eq. (9);
                     //  Lambert et al. (2019), Eq. (5)]
-                    //
-                    // FIX-MB6: Physical upper bound on uNormalMag.
-                    // When tb is very close to tDef (high-We limit where
-                    // tbOverTstar is small), the denominator (tb - tDef)
-                    // approaches zero and uNormalMag diverges. This is
-                    // unphysical: the rim expansion velocity cannot exceed
-                    // the relative velocity between the drop and the gas at
-                    // breakup onset, since the energy driving the expansion
-                    // comes from the aerodynamic pressure difference.
-                    // A cap at UrelPE0 is therefore imposed as a physical
-                    // safety bound. Note that the original Madabhushi (2003)
-                    // formula does not prescribe this limit; the cap is added
-                    // here solely to prevent numerical blow-up in degenerate
-                    // timestep configurations and is bibliographically
-                    // conservative (it can only reduce, never increase, the
-                    // fragment dispersion velocity).
-                    // [Madabhushi (2003), text after Eq. (9);
-                    //  Lambert et al. (2019), Eq. (5)]
-                    const scalar uNormalMagRaw =
-                        5.0*Dparent0/(tb - tDef + VSMALL);
                     const scalar uNormalMag =
-                        min(uNormalMagRaw, UrelPE0);
+                        5.0*Dparent0/(tb - tDef + VSMALL);
 
                     const label nFragments = nChildren_;
                     const scalar massPerFragment =
@@ -919,7 +926,9 @@ bool Foam::Madabhushi<CloudType>::update
 
                         const scalar dTarget = FLigEff*dBarChild;
 
-                        dFrag.append(max(2.0e-6, min(dTarget, Dparent0)));
+                        // Numerical guard only: do not impose a physical
+                        // lower-diameter floor in the breakup law.
+                        dFrag.append(max(1.0e-12, min(dTarget, Dparent0)));
 
                         const scalar alpha =
                             2.0*pi*this->owner().rndGen().template sample01<scalar>();
@@ -958,16 +967,14 @@ bool Foam::Madabhushi<CloudType>::update
 
                     if (isStandardPEChild)
                     {
-                        // FIX-MB9: Apply the same We > Wec AND d > dStable
-                        // admission criteria used by PATH 1 for sentinels.
-                        // Previously the relatch was unconditional, causing
-                        // already-stable fragments to re-enter PE cycles
-                        // indefinitely and systematically underestimating D32.
-                        // Instantaneous Urmag and d are used, consistent with
-                        // the PATH 1 evaluation logic.
-                        // [Pilch & Erdman (1987), Eqs. (20) and (33)]
+                        // FIX-MB11: relatch must use the actual slip velocity
+                        // of fragment #1 after assigning the rim-expansion
+                        // velocity, not the pre-breakup parent Urmag.
+                        const vector UrelFrag0 = parentFinalVelocity - UgasLocal;
+                        const scalar UrmagFrag0 = mag(UrelFrag0);
+
                         const scalar weCurrRelatch =
-                            rhoc*sqr(Urmag)*d/(sigma + VSMALL);
+                            rhoc*sqr(UrmagFrag0)*d/(sigma + VSMALL);
 
                         const scalar ohCurrRelatch =
                             mu/(Foam::sqrt(rho*d*sigma) + VSMALL);
@@ -976,6 +983,7 @@ bool Foam::Madabhushi<CloudType>::update
                             12.0*(1.0 + 1.077*pow(ohCurrRelatch, 1.6));
 
                         bool allowRelatch = false;
+                        scalar dStableRelatch = GREAT;
 
                         if (weCurrRelatch > weCritRelatch)
                         {
@@ -986,53 +994,85 @@ bool Foam::Madabhushi<CloudType>::update
                                 if (weCurrRelatch > 351.0)
                                 {
                                     taubBarRelatch =
-                                        0.766*pow(
+                                        0.766*pow
+                                        (
                                             max(weCurrRelatch - 12.0, VSMALL),
-                                            0.25);
+                                            0.25
+                                        );
                                 }
                                 else if (weCurrRelatch > 45.0)
                                 {
                                     taubBarRelatch =
-                                        14.1*pow(
+                                        14.1*pow
+                                        (
                                             max(weCurrRelatch - 12.0, VSMALL),
-                                            -0.25);
+                                            -0.25
+                                        );
                                 }
                                 else if (weCurrRelatch > 18.0)
                                 {
                                     taubBarRelatch =
-                                        2.45*pow(
+                                        2.45*pow
+                                        (
                                             max(weCurrRelatch - 12.0, VSMALL),
-                                            0.25);
+                                            0.25
+                                        );
                                 }
                                 else if (weCurrRelatch > 12.0)
                                 {
                                     taubBarRelatch =
-                                        6.0*pow(
+                                        6.0*pow
+                                        (
                                             max(weCurrRelatch - 12.0, VSMALL),
-                                            -0.25);
+                                            -0.25
+                                        );
                                 }
                             }
 
                             const scalar rho12Relatch =
                                 Foam::sqrt(max(rhoc/(rho + VSMALL), VSMALL));
 
+                            // B1PE=0.375, B2PE=0.2274 [OpenFOAM PilchErdman.C]
                             const scalar VdRelatch =
-                                Urmag*rho12Relatch
-                               // B1PE=0.375, B2PE=0.2274 [OpenFOAM PilchErdman.C]
-                               // redeclared as literals — B1PE/B2PE are local to PATH 1 scope
+                                UrmagFrag0*rho12Relatch
                                *(0.375*taubBarRelatch
                                + 0.2274*sqr(taubBarRelatch));
 
+                            // Same stability logic used in PATH 1:
+                            // clamp the velocity-history factor before squaring.
                             const scalar Vd1Relatch =
-                                max(
-                                    sqr(1.0 - VdRelatch/(Urmag + VSMALL)),
-                                    SMALL);
+                                max
+                                (
+                                    sqr
+                                    (
+                                        max
+                                        (
+                                            1.0 - VdRelatch/(UrmagFrag0 + VSMALL),
+                                            0.0
+                                        )
+                                    ),
+                                    SMALL
+                                );
 
-                            const scalar dStableRelatch =
-                                weCritRelatch*sigma
-                               /(Vd1Relatch*rhoc*sqr(Urmag) + VSMALL);
+                            // Maximum stable diameter uses We_c = 12.
+                            // The viscous correction is used only in the
+                            // admission criterion weCurrRelatch > weCritRelatch.
+                            dStableRelatch =
+                                12.0*sigma
+                               /(Vd1Relatch*rhoc*sqr(UrmagFrag0) + VSMALL);
 
                             allowRelatch = (d > dStableRelatch);
+                        }
+
+                        if (debug_)
+                        {
+                            stdPeLogFile()
+                                << "RELATCH_CHECK,Frag0,"
+                                << tc << "," << d << "," << UrmagFrag0 << ","
+                                << weCurrRelatch << "," << weCritRelatch << ","
+                                << dStableRelatch << ","
+                                << (allowRelatch ? 1 : 0)
+                                << Foam::endl;
                         }
 
                         if (allowRelatch)
@@ -1040,7 +1080,7 @@ bool Foam::Madabhushi<CloudType>::update
                             // Fragment still unstable: relatch for new PE cycle.
                             y       = tc;
                             yDot    = d;
-                            KHindex = Urmag;
+                            KHindex = UrmagFrag0;
                             ms      = 2.0;
                         }
                         else
