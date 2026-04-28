@@ -230,11 +230,13 @@ Foam::Madabhushi<CloudType>::Madabhushi
     b1_(this->coeffDict().getOrDefault("b1", 10.0)),
     Dinj_(this->coeffDict().getOrDefault("Dinj", 0.0016)),
     nChildren_(this->coeffDict().getOrDefault("nChildren", 5)),
+    minChildDiameter_(this->coeffDict().getOrDefault("minChildDiameter", 1.0e-7)),
     debug_(this->coeffDict().getOrDefault("debug", false)),
     childMsInit_(-GREAT),
     childUserInit_(0.0),
     pendingChildren_(),
-    pendingChildUserFlag_(0.0)
+    pendingChildUserFlag_(0.0),
+    parentUserUpdate_(-GREAT)
 {}
 
 
@@ -251,11 +253,13 @@ Foam::Madabhushi<CloudType>::Madabhushi
     b1_(model.b1_),
     Dinj_(model.Dinj_),
     nChildren_(model.nChildren_),
+    minChildDiameter_(model.minChildDiameter_),
     debug_(model.debug_),
     childMsInit_(-GREAT),
     childUserInit_(0.0),
     pendingChildren_(),
-    pendingChildUserFlag_(0.0)
+    pendingChildUserFlag_(0.0),
+    parentUserUpdate_(-GREAT)
 {}
 
 
@@ -301,6 +305,7 @@ bool Foam::Madabhushi<CloudType>::update
     childUserInit_ = 0.0;
     pendingChildren_.clear();
     pendingChildUserFlag_ = 0.0;
+    parentUserUpdate_ = -GREAT;
 
     const scalar pi = constant::mathematical::pi;
     const scalar rhoPiOver6 = rho*pi/6.0;
@@ -906,11 +911,10 @@ bool Foam::Madabhushi<CloudType>::update
                     const scalar uNormalMag =
                         5.0*Dparent0/(tb - tDef + VSMALL);
 
-                    const label nFragments = nChildren_;
-                    const scalar massPerFragment =
-                        totalMassToBreak/scalar(nFragments);
+                    const label nFragments = max(nChildren_, label(2));
 
                     DynamicList<scalar> dFrag(nFragments);
+                    DynamicList<scalar> massFrag(nFragments);
                     DynamicList<vector> UFrag(nFragments);
 
                     for (label i = 0; i < nFragments; ++i)
@@ -926,9 +930,10 @@ bool Foam::Madabhushi<CloudType>::update
 
                         const scalar dTarget = FLigEff*dBarChild;
 
-                        // Numerical guard only: do not impose a physical
-                        // lower-diameter floor in the breakup law.
-                        dFrag.append(max(1.0e-12, min(dTarget, Dparent0)));
+                        // Numerical guard only: avoid degenerate root-normal
+                        // samples with vanishing diameter and unbounded
+                        // nParticle. This is not intended as a physical floor.
+                        dFrag.append(max(minChildDiameter_, min(dTarget, Dparent0)));
 
                         const scalar alpha =
                             2.0*pi*this->owner().rndGen().template sample01<scalar>();
@@ -942,6 +947,27 @@ bool Foam::Madabhushi<CloudType>::update
                               + sin(alpha)*normal2
                             )
                         );
+                    }
+
+                    // -------------------------------------------------
+                    // Convert sampled diameters into child parcel masses.
+                    // Each child parcel represents the same number of physical
+                    // droplets; parcel mass is therefore proportional to d_i^3.
+                    // This conserves total mass without giving tiny fragments
+                    // an artificially large nParticle.
+                    // -------------------------------------------------
+                    scalar sumD3 = 0.0;
+                    forAll(dFrag, i)
+                    {
+                        sumD3 += pow3(dFrag[i]);
+                    }
+
+                    const scalar nChildPerParcel =
+                        totalMassToBreak/(rhoPiOver6*sumD3 + VSMALL);
+
+                    forAll(dFrag, i)
+                    {
+                        massFrag.append(nChildPerParcel*rhoPiOver6*pow3(dFrag[i]));
                     }
 
                     // FIX-MB1: CSV log for breakup event — no limit
@@ -961,7 +987,7 @@ bool Foam::Madabhushi<CloudType>::update
                     // Fragment #1 -> remains on the parent parcel
                     // -------------------------------------------------
                     d = dFrag[0];
-                    parcelMass = massPerFragment;
+                    parcelMass = massFrag[0];
 
                     const vector parentFinalVelocity = UFrag[0];
 
@@ -1102,11 +1128,16 @@ bool Foam::Madabhushi<CloudType>::update
                         ms = -20.0;
                     }
 
+                    // The retained parent parcel is now also a post-catastrophic
+                    // fragment. Keep the user_ tag consistent for diagnostics
+                    // and for any user-based branching.
+                    parentUserUpdate_ = 2.0;
+
                     // -------------------------------------------------
                     // Fragment #2 -> returned through addParcel
                     // -------------------------------------------------
                     dChild = dFrag[1];
-                    massChild = massPerFragment;
+                    massChild = massFrag[1];
 
                     {
                         // [FIX Bug2] Set U to UFrag[1] for clone.
@@ -1131,7 +1162,7 @@ bool Foam::Madabhushi<CloudType>::update
                     {
                         pendingChildren_.append
                         (
-                            pendingChild(dFrag[i], massPerFragment, UFrag[i])
+                            pendingChild(dFrag[i], massFrag[i], UFrag[i])
                         );
                     }
 

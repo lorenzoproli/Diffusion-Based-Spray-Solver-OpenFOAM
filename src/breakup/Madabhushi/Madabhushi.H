@@ -75,6 +75,11 @@ private:
         //- Number of child parcels at catastrophic breakup (default 5)
         label nChildren_;
 
+        //- Numerical lower bound for sampled child diameters.
+        //  This is not a physical SMD floor; it only prevents degenerate
+        //  root-normal samples from producing unbounded nParticle values.
+        scalar minChildDiameter_;
+
         Switch debug_;
 
         // --- Mutable state for child signaling to calcBreakup ---
@@ -99,6 +104,10 @@ private:
 
         //- user flag for pending children
         mutable scalar pendingChildUserFlag_;
+
+        //- Optional user_ update for the retained parent fragment after
+        //  a breakup event. -GREAT means no update.
+        mutable scalar parentUserUpdate_;
 
 
 public:
@@ -205,8 +214,17 @@ public:
         }
 
         //- user flag for pending children
-        scalar pendingChildUserFlag() const { return pendingChildUserFlag_; }
-        //  function (not an override) and the base-class no-op was called instead.
+        virtual scalar pendingChildUserFlag() const override
+        {
+            return pendingChildUserFlag_;
+        }
+
+        //- Optional user_ update for the retained parent fragment
+        virtual scalar parentUserUpdate() const override
+        {
+            return parentUserUpdate_;
+        }
+
         virtual void clearPendingChildren() override { pendingChildren_.clear(); }
 };
 
