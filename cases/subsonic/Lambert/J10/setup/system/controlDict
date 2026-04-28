@@ -1,0 +1,94 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2406                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+FoamFile
+{
+    version         2;
+    format          ascii;
+    class           dictionary;
+    object          controlDict;
+}
+
+application     sprayFoamDBM;
+
+startFrom       latestTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         0.0245;
+
+deltaT          1e-06;
+
+adjustTimeStep  no;
+
+writeControl    adjustableRunTime;
+
+writeInterval   0.0005;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  10;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable yes;
+
+libs            ( "libMadabhushiSprayModels.so" "libMadabhushiDragModels.so" );
+
+maxCo           0.4;
+
+maxDeltaT       5e-06;
+
+functions
+{
+    sprayCloudInfo
+    {
+        type            cloudInfo;
+        libs            ( "liblagrangianFunctionObjects.so" );
+        enabled         false;
+        log             true;
+        clouds          ( sprayCloud );
+        executeControl  adjustableRunTime;
+        executeInterval 0.0005;
+        writeControl    adjustableRunTime;
+        writeInterval   0.0005;
+    }
+    residuals
+    {
+        type            solverInfo;
+        libs            ( "libutilityFunctionObjects.so" );
+        fields          ( U p k omega h );
+        writeResidualFields no;
+        executeControl  timeStep;
+        executeInterval 1;
+        writeControl    adjustableRunTime;
+        writeInterval   0.0005;
+    }
+    yPlus
+    {
+        type            yPlus;
+        libs            ( "libfieldFunctionObjects.so" );
+        enabled         true;
+        log             true;
+        executeControl  adjustableRunTime;
+        executeInterval 0.0005;
+        writeControl    adjustableRunTime;
+        writeInterval   0.0005;
+    }
+}
+
+
+// ************************************************************************* //
