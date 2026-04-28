@@ -1,262 +1,41 @@
 #!/bin/bash
-# =============================================================================
-# Allrun — simulazione monosolver sprayFoam
-#
-# Approccio Lambert (2019) — tre fasi temporali:
-#
-# FASE 1a — Gas warm-up (t = 0 → T_WARMUP = 0.005 s)
-#   sprayFoam, Euler + upwind puro (primo ordine), cloud off
-#   Massima dissipazione numerica: stabilizza omega near-wall da campo
-#   iniziale uniforme senza oscillazioni spurie.
-#
-# FASE 1b — Gas stabilization (t = T_WARMUP → T_STAB = 0.015 s)
-#   sprayFoam, backward + linearUpwind (secondo ordine), cloud off
-#   Campo di velocità accurato; backward stabile perché il campo Euler
-#   è già sufficientemente sviluppato dopo 0.005 s.
-#
-# FASE 2 — Spray attivo (t = T_STAB → T_SPRAY = 0.030 s)
-#   sprayFoam, backward + linearUpwind (secondo ordine), cloud on
-#   SOI = 0 relativo a startTime FASE 2 (t_fisico = T_STAB = 0.015 s)
-#   Fine iniezione: t_fisico = T_STAB + 0.0145 = 0.0295 s
-#
-# USO:
-#   ./Allrun_automated           # run completo da t=0
-#   ./Allrun_automated --gas     # solo FASE 1a+1b, si ferma a T_STAB
-#   ./Allrun_automated --1b      # salta FASE 1a, avvia solo FASE 1b da latestTime
-#   ./Allrun_automated --spray   # salta FASE 1, avvia solo FASE 2 da latestTime
-#   ./Allrun_automated --clean   # pulizia completa e restart
-#
-# PREREQUISITI:
-#   - constant/thermophysicalProperties    (reactingMixture, NON pureMixture)
-#   - constant/sprayCloudProperties        (active false — FASE 1)
-#   - constant/sprayCloudProperties.spray  (active true  — FASE 2)
-#   - system/fvSchemes.euler               (Euler + upwind — FASE 1a)
-#   - system/fvSchemes.spray               (backward + linearUpwind — FASE 1b e 2)
-#   - system/fvSolution                    (FASE 1, pRefPoint aggiornato)
-#   - system/fvSolution.spray              (FASE 2, pRefPoint aggiornato)
-#   - libMadabhushiSprayModels.so + libMadabhushiDragModels.so compilate
-# =============================================================================
-
 set -euo pipefail
 
 NP=16
 
-T_WARMUP=0.005      # fine FASE 1a: Euler + upwind puro [s]
-T_STAB=0.015        # fine FASE 1b: backward + linearUpwind [s]
-T_SPRAY=0.030       # fine FASE 2: spray [s]
+log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
-DT_WARMUP=5e-6      # maxDeltaT FASE 1a (adjustTimeStep, Co_max=0.4)
-DT_STAB=1e-6        # dt fisso FASE 1b e FASE 2
+log "=== Clean ==="
+rm -rf processor*
+rm -f log.*
+# Rimuove time-dir precedenti (0.0005, 0.001, ...) ma mantiene 0/ (condizioni iniziali)
+rm -rf 0.[0-9]* [1-9]*
 
-log()  { echo "[$(date '+%H:%M:%S')] $*"; }
-err()  { echo "[ERRORE] $*" >&2; exit 1; }
-warn() { echo "[WARN]   $*"; }
+# Ripristina U pulita (BC only) prima di potentialFoam
+cp U_backup/U 0/U
 
-# =============================================================================
-# PREREQUISITI
-# =============================================================================
-log "=== Verifica prerequisiti ==="
+# ------------------------------------------------------------------
+# INIT: potentialFoam
+# ------------------------------------------------------------------
+log "=== potentialFoam ==="
+potentialFoam -noFunctionObjects 2>&1 | tee log.potentialFoam
 
-for lib in libMadabhushiSprayModels.so libMadabhushiDragModels.so; do
-    if ! ls "${FOAM_USER_LIBBIN:-/dev/null}/$lib" 2>/dev/null | grep -q "$lib" && \
-       ! ldconfig -p 2>/dev/null | grep -q "$lib"; then
-        warn "$lib non trovata nel path — verificare LD_LIBRARY_PATH"
-    fi
-done
+# ------------------------------------------------------------------
+# DECOMPOSE
+# ------------------------------------------------------------------
+log "=== decomposePar ==="
+decomposePar 2>&1 | tee log.decomposePar
 
-for f in \
-    constant/thermophysicalProperties \
-    constant/sprayCloudProperties \
-    constant/sprayCloudProperties.spray \
-    system/controlDict \
-    system/fvSchemes.euler \
-    system/fvSchemes.spray \
-    system/fvSolution \
-    system/fvSolution.spray; do
-    [ -f "$f" ] || err "File mancante: $f"
-done
+# ------------------------------------------------------------------
+# RUN sprayFoam (UNICA FASE)
+# ------------------------------------------------------------------
+log "=== sprayFoam RUN ==="
+mpirun -np $NP sprayFoamDBM -parallel 2>&1 | tee log.sprayFoamDBM
 
-if grep -q "pureMixture" constant/thermophysicalProperties; then
-    err "constant/thermophysicalProperties contiene 'pureMixture' — incompatibile con sprayFoam."
-fi
+# ------------------------------------------------------------------
+# POST
+# ------------------------------------------------------------------
+log "=== reconstruct ==="
+reconstructPar 2>&1 | tee log.reconstructPar
 
-if grep -q "active.*true" constant/sprayCloudProperties; then
-    err "constant/sprayCloudProperties ha 'active true' — deve essere false per FASE 1."
-fi
-
-log "  Prerequisiti OK"
-
-# =============================================================================
-# PULIZIA
-# =============================================================================
-if [[ "${1:-}" == "--clean" ]]; then
-    log "=== Pulizia completa ==="
-    rm -rf processor*
-    rm -f log.sprayFoam_1a log.sprayFoam_1b log.sprayFoam_spray \
-          log.decomposePar log.decomposePar_1b log.decomposePar_spray \
-          log.reconstructPar
-    log "  Pulizia completata."
-    exit 0
-fi
-
-# =============================================================================
-# FASE 1a — Gas warm-up (Euler + upwind puro, adjustTimeStep, Co_max=0.4)
-# =============================================================================
-if [[ "${1:-}" != "--spray" && "${1:-}" != "--1b" ]]; then
-
-    log ""
-    log "================================================================"
-    log " FASE 1a: Gas warm-up — Euler + upwind, adjustTimeStep"
-    log "  t = 0 → ${T_WARMUP} s   maxDeltaT = ${DT_WARMUP}   Co_max = 0.4"
-    log "================================================================"
-
-    # Switch a Euler + primo ordine puro
-    cp system/fvSchemes.euler system/fvSchemes
-    cp system/fvSolution      system/fvSolution.active 2>/dev/null || true
-
-    # Patch controlDict FASE 1a
-    foamDictionary system/controlDict -entry startFrom      -set "startTime"    > /dev/null
-    foamDictionary system/controlDict -entry startTime      -set "0"            > /dev/null
-    foamDictionary system/controlDict -entry endTime        -set "${T_WARMUP}"  > /dev/null
-    foamDictionary system/controlDict -entry deltaT         -set "1e-7"         > /dev/null
-    foamDictionary system/controlDict -entry adjustTimeStep -set "yes"          > /dev/null
-    foamDictionary system/controlDict -entry maxCo          -set "0.4"          > /dev/null
-    foamDictionary system/controlDict -entry maxDeltaT      -set "${DT_WARMUP}" > /dev/null
-
-    # -------------------------------------------------------------------------
-    # potentialFoam: inizializzazione del campo U divergence-free
-    # Deve girare PRIMA di decomposePar — aggiorna 0/U che viene poi
-    # decomposito e letto da sprayFoam in parallelo.
-    # -------------------------------------------------------------------------
-    log "  Inizializzazione potentialFoam (seriale su 0/)..."
-    potentialFoam -noFunctionObjects 2>&1 | tee log.potentialFoam
-    [ ${PIPESTATUS[0]} -eq 0 ] || err "potentialFoam fallito — vedere log.potentialFoam"
-    log "  potentialFoam completato — campo U inizializzato."
-
-    # Decomposizione (dopo potentialFoam — usa 0/U aggiornato)
-    if [ ! -d "processor0" ]; then
-        log "  Decomposizione dominio ($NP core)..."
-        decomposePar 2>&1 | tee log.decomposePar
-        [ ${PIPESTATUS[0]} -eq 0 ] || err "decomposePar fallito"
-    else
-        log "  processor0/ già presente — skip decomposePar"
-        log "  ATTENZIONE: processor0/ esistente — potentialFoam ha aggiornato 0/U"
-        log "  ma i processor potrebbero avere U vecchio. Eseguire --clean se necessario."
-    fi
-
-    log "  Avvio sprayFoam FASE 1a ($NP core)..."
-    mpirun -np $NP sprayFoam -parallel 2>&1 | tee log.sprayFoam_1a
-    [ ${PIPESTATUS[0]} -eq 0 ] || err "sprayFoam FASE 1a fallito — vedere log.sprayFoam_1a"
-
-    LATEST=$(foamListTimes -case processor0 -latestTime 2>/dev/null || true)
-    [ -n "$LATEST" ] || err "FASE 1a completata ma nessun latestTime in processor0/"
-    log "  FASE 1a completata. latestTime = ${LATEST} s"
-
-fi
-
-# =============================================================================
-# FASE 1b — Gas stabilization (backward + linearUpwind, dt fisso)
-# =============================================================================
-if [[ "${1:-}" != "--spray" ]]; then
-
-    log ""
-    log "================================================================"
-    log " FASE 1b: Gas stabilization — backward + linearUpwind"
-    log "  t = ${T_WARMUP} → ${T_STAB} s   dt = ${DT_STAB}"
-    log "================================================================"
-
-    # Recupera latestTime se si entra da --1b
-    if [[ "${1:-}" == "--1b" ]]; then
-        LATEST=$(foamListTimes -case processor0 -latestTime 2>/dev/null || true)
-        [ -n "$LATEST" ] || err "Nessun latestTime in processor0/ — eseguire prima FASE 1a"
-        log "  --1b: latestTime rilevato = ${LATEST} s"
-    fi
-
-    # Switch a backward + secondo ordine spaziale
-    cp system/fvSchemes.spray  system/fvSchemes
-    cp system/fvSolution.spray system/fvSolution
-    cp system/fvSolution       system/fvSolution.active 2>/dev/null || true
-
-    # Patch controlDict FASE 1b — dt fisso
-    foamDictionary system/controlDict -entry startFrom      -set "latestTime"  > /dev/null
-    foamDictionary system/controlDict -entry endTime        -set "${T_STAB}"   > /dev/null
-    foamDictionary system/controlDict -entry deltaT         -set "${DT_STAB}"  > /dev/null
-    foamDictionary system/controlDict -entry adjustTimeStep -set "no"          > /dev/null
-
-
-    log "  Avvio sprayFoam FASE 1b ($NP core)..."
-    mpirun -np $NP sprayFoam -parallel 2>&1 | tee log.sprayFoam_1b
-    [ ${PIPESTATUS[0]} -eq 0 ] || err "sprayFoam FASE 1b fallito — vedere log.sprayFoam_1b"
-
-    LATEST=$(foamListTimes -case processor0 -latestTime 2>/dev/null || true)
-    [ -n "$LATEST" ] || err "FASE 1b completata ma nessun latestTime in processor0/"
-    log "  FASE 1b completata. latestTime = ${LATEST} s"
-
-    # --gas: ferma qui
-    if [[ "${1:-}" == "--gas" || "${1:-}" == "--1b" ]]; then
-        log ""
-        log "================================================================"
-        log " FASE 1 completata. Campo gas a t=${LATEST} s pronto."
-        log "  Per avviare lo spray: ./Allrun_automated --spray"
-        log "================================================================"
-        exit 0
-    fi
-
-fi
-
-# =============================================================================
-# SWITCH: attiva cloud per FASE 2
-# =============================================================================
-log ""
-log "=== Switch cloud: active false → active true ==="
-
-# Recupera latestTime se si entra da --spray
-if [[ "${1:-}" == "--spray" ]]; then
-    LATEST=$(foamListTimes -case processor0 -latestTime 2>/dev/null || true)
-    [ -n "$LATEST" ] || err "Nessun latestTime in processor0/ — eseguire prima FASE 1"
-    log "  --spray: latestTime rilevato = ${LATEST} s"
-fi
-
-cp constant/sprayCloudProperties.spray constant/sprayCloudProperties
-cp system/fvSchemes.spray               system/fvSchemes
-cp system/fvSolution.spray              system/fvSolution
-log "  sprayCloudProperties ← sprayCloudProperties.spray (Madabhushi attivo)"
-log "  fvSchemes            ← fvSchemes.spray (backward + linearUpwind)"
-log "  fvSolution           ← fvSolution.spray"
-
-# Patch controlDict FASE 2
-foamDictionary system/controlDict -entry startFrom      -set "latestTime"  > /dev/null
-foamDictionary system/controlDict -entry endTime        -set "${T_SPRAY}"  > /dev/null
-foamDictionary system/controlDict -entry deltaT         -set "${DT_STAB}"  > /dev/null
-foamDictionary system/controlDict -entry adjustTimeStep -set "no"          > /dev/null
-log "  controlDict: startFrom=latestTime, endTime=${T_SPRAY}, dt=${DT_STAB}"
-
-
-# =============================================================================
-# FASE 2 — Spray attivo
-# =============================================================================
-log ""
-log "================================================================"
-log " FASE 2: Spray — sprayFoam (Madabhushi breakup + Lambert drag)"
-log "  startTime = ${LATEST} s  (t_fisico = T_STAB = ${T_STAB} s)"
-log "  endTime   = ${T_SPRAY} s"
-log "  SOI       = 0 s relativo a startTime FASE 2"
-log "  Fine iniezione: t_fisico = $(python3 -c "print(${T_STAB}+0.0145)") s"
-log "================================================================"
-
-mpirun -np $NP sprayFoam -parallel 2>&1 | tee log.sprayFoam_spray
-[ ${PIPESTATUS[0]} -eq 0 ] || err "sprayFoam FASE 2 fallito — vedere log.sprayFoam_spray"
-
-# =============================================================================
-# COMPLETAMENTO
-# =============================================================================
-log ""
-log "================================================================"
-log " Simulazione completata."
-log "  log FASE 1a (warm-up):     log.sprayFoam_1a"
-log "  log FASE 1b (gas stab):    log.sprayFoam_1b"
-log "  log FASE 2  (spray):       log.sprayFoam_spray"
-log ""
-log "  Per ricostruire i risultati spray:"
-log "    reconstructPar -time '${T_STAB}:${T_SPRAY}'"
-log "================================================================"
+log "=== DONE ==="
