@@ -22,11 +22,11 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         0.0245;
+endTime         0.03;
 
-deltaT          1e-06;
+deltaT          2.5e-07;
 
-adjustTimeStep  no;
+adjustTimeStep  yes;
 
 writeControl    adjustableRunTime;
 
@@ -46,11 +46,11 @@ timePrecision   6;
 
 runTimeModifiable yes;
 
-libs            ( "libMadabhushiSprayModels.so" "libMadabhushiDragModels.so" );
+libs            ( "libMadabhushiSprayModels.so" "libMadabhushiDragModels.so" "libParcelPlaneSampler.so" );
 
-maxCo           0.4;
+maxCo           1.0;
 
-maxDeltaT       5e-06;
+maxDeltaT       1e-05;
 
 functions
 {

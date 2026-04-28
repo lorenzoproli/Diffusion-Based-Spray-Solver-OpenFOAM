@@ -12,262 +12,326 @@ FoamFile
     class       dictionary;
     object      blockMeshDict;
 }
-
-// Static approximation of Zhang et al. (2026) Fig. 3 mesh topology
-// Domain: gas film [-4,0] x [-16,16] x [0,8] mm
-//         atomization [0,80] x [-16,16] x [0,65] mm
-// Implemented regions in pure blockMesh:
-//   1) Core band:   [-4,80] x [-3d,3d] x [0,65]  with y split at +/-4.8 mm
-//   2) Shear band:  [-4,30] x [-16,16] x [0,10d] using x/z dense blocks
-//   3) Lower wall: extra refinement prism [-4,30] x [-16,16] x [0,10d] added
-//      with doubled wall-normal resolution relative to the centered vertical strip
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 //
-// NOTE: this is NOT octree AMR; it is the closest static multiblock equivalent in blockMesh.
-// Target total cells: ~2.5M after adding the extra lower-wall refinement prism
-// Current total cells: 2466048
+//  Lambert (2019) LJICF rectangular test section
+//  -----------------------------------------------
+//  Ref: Lambert et al., ILASS-Europe 2019, "Enhancement of the
+//       Madabhushi LJICF Breakup Model by a Ligament Breakup Mechanism"
+//
+//  Domain:
+//    x: [0, 0.06858]  length  (l/d ~ 150)
+//    y: [0, 0.04318]  height  (quadratic cross-section, w/d ~ 95)
+//    z: [-0.02159, +0.02159]  spanwise (w/d ~ 95)
+//
+//  Injector:
+//    d = 457 µm = 4.57e-4 m
+//    Position: x = 0.02 m from inlet, y = 0 (bottom wall), z = 0 (centreline)
+//
+//  Conditions:
+//    T = 300 K, p = 506625 Pa (~5 atm)
+//    Gas (air): rho ~ 5.88 kg/m³, mu ~ 1.85e-5 Pa·s
+//    We = 1500, J = 10 or 20
+//    u_gas ~ 120 m/s
+//
+//  Boundary layer:
+//    y+ ~ 1 → first cell height ~ 1.2 µm at both walls
+//    Wall-normal 3-section multi-grading: BL(30) + bulk(50) + BL(30) = 110 cells
+//    Bottom: expansion 300, Top: expansion 1/300 (symmetric)
+//
+//  Mesh zones (x-direction):
+//    B1: [0, 0.0125]     upstream of jet, mild compression towards jet
+//    B2: [0.0125, 0.0275] jet zone (centred on x_inj = 0.02), fine
+//    B3: [0.0275, 0.06858] downstream, mild expansion
+//
+//  Mesh zones (z-direction):
+//    B1: [-0.02159, -0.0075]  outer, coarser
+//    B2: [-0.0075, +0.0075]   jet zone, fine
+//    B3: [+0.0075, +0.02159]  outer, coarser
+//
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-scale 1;
+scale   1;
+
+// --- X coordinates (streamwise) ---
+x0   0.0;
+x1   0.0125;     // upstream block end
+x2   0.0275;     // jet zone end  (jet at x=0.02, ±7.5mm)
+x3   0.06858;    // outlet
+
+// --- Y coordinates (wall-normal) ---
+y0   0.0;        // bottom wall (injector location)
+y1   0.04318;    // top
+
+// --- Z coordinates (spanwise) ---
+z0  -0.02159;
+z1  -0.0075;
+z2   0.0075;
+z3   0.02159;
 
 vertices
 (
-    (-0.0040 -0.0160  0.0000)   // 0
-    ( 0.0000 -0.0160  0.0000)   // 1
-    ( 0.0150 -0.0160  0.0000)   // 2
-    ( 0.0300 -0.0160  0.0000)   // 3
-    ( 0.0800 -0.0160  0.0000)   // 4
-    (-0.0040 -0.0048  0.0000)   // 5
-    ( 0.0000 -0.0048  0.0000)   // 6
-    ( 0.0150 -0.0048  0.0000)   // 7
-    ( 0.0300 -0.0048  0.0000)   // 8
-    ( 0.0800 -0.0048  0.0000)   // 9
-    (-0.0040  0.0048  0.0000)   // 10
-    ( 0.0000  0.0048  0.0000)   // 11
-    ( 0.0150  0.0048  0.0000)   // 12
-    ( 0.0300  0.0048  0.0000)   // 13
-    ( 0.0800  0.0048  0.0000)   // 14
-    (-0.0040  0.0160  0.0000)   // 15
-    ( 0.0000  0.0160  0.0000)   // 16
-    ( 0.0150  0.0160  0.0000)   // 17
-    ( 0.0300  0.0160  0.0000)   // 18
-    ( 0.0800  0.0160  0.0000)   // 19
-    (-0.0040 -0.0160  0.0080)   // 20
-    ( 0.0000 -0.0160  0.0080)   // 21
-    ( 0.0150 -0.0160  0.0080)   // 22
-    ( 0.0300 -0.0160  0.0080)   // 23
-    ( 0.0800 -0.0160  0.0080)   // 24
-    (-0.0040 -0.0048  0.0080)   // 25
-    ( 0.0000 -0.0048  0.0080)   // 26
-    ( 0.0150 -0.0048  0.0080)   // 27
-    ( 0.0300 -0.0048  0.0080)   // 28
-    ( 0.0800 -0.0048  0.0080)   // 29
-    (-0.0040  0.0048  0.0080)   // 30
-    ( 0.0000  0.0048  0.0080)   // 31
-    ( 0.0150  0.0048  0.0080)   // 32
-    ( 0.0300  0.0048  0.0080)   // 33
-    ( 0.0800  0.0048  0.0080)   // 34
-    (-0.0040  0.0160  0.0080)   // 35
-    ( 0.0000  0.0160  0.0080)   // 36
-    ( 0.0150  0.0160  0.0080)   // 37
-    ( 0.0300  0.0160  0.0080)   // 38
-    ( 0.0800  0.0160  0.0080)   // 39
-    ( 0.0000 -0.0160  0.0160)   // 40
-    ( 0.0150 -0.0160  0.0160)   // 41
-    ( 0.0300 -0.0160  0.0160)   // 42
-    ( 0.0800 -0.0160  0.0160)   // 43
-    ( 0.0000 -0.0048  0.0160)   // 44
-    ( 0.0150 -0.0048  0.0160)   // 45
-    ( 0.0300 -0.0048  0.0160)   // 46
-    ( 0.0800 -0.0048  0.0160)   // 47
-    ( 0.0000  0.0048  0.0160)   // 48
-    ( 0.0150  0.0048  0.0160)   // 49
-    ( 0.0300  0.0048  0.0160)   // 50
-    ( 0.0800  0.0048  0.0160)   // 51
-    ( 0.0000  0.0160  0.0160)   // 52
-    ( 0.0150  0.0160  0.0160)   // 53
-    ( 0.0300  0.0160  0.0160)   // 54
-    ( 0.0800  0.0160  0.0160)   // 55
-    ( 0.0000 -0.0160  0.0650)   // 56
-    ( 0.0150 -0.0160  0.0650)   // 57
-    ( 0.0300 -0.0160  0.0650)   // 58
-    ( 0.0800 -0.0160  0.0650)   // 59
-    ( 0.0000 -0.0048  0.0650)   // 60
-    ( 0.0150 -0.0048  0.0650)   // 61
-    ( 0.0300 -0.0048  0.0650)   // 62
-    ( 0.0800 -0.0048  0.0650)   // 63
-    ( 0.0000  0.0048  0.0650)   // 64
-    ( 0.0150  0.0048  0.0650)   // 65
-    ( 0.0300  0.0048  0.0650)   // 66
-    ( 0.0800  0.0048  0.0650)   // 67
-    ( 0.0000  0.0160  0.0650)   // 68
-    ( 0.0150  0.0160  0.0650)   // 69
-    ( 0.0300  0.0160  0.0650)   // 70
-    ( 0.0800  0.0160  0.0650)   // 71
+    // --- y = y0  plane (bottom wall, z = z0..z3) ---
+    // Row z0:  x0..x3
+    ( $x0  $y0  $z0 )   // 0
+    ( $x1  $y0  $z0 )   // 1
+    ( $x2  $y0  $z0 )   // 2
+    ( $x3  $y0  $z0 )   // 3
+
+    // Row z1:
+    ( $x0  $y0  $z1 )   // 4
+    ( $x1  $y0  $z1 )   // 5
+    ( $x2  $y0  $z1 )   // 6
+    ( $x3  $y0  $z1 )   // 7
+
+    // Row z2:
+    ( $x0  $y0  $z2 )   // 8
+    ( $x1  $y0  $z2 )   // 9
+    ( $x2  $y0  $z2 )   // 10
+    ( $x3  $y0  $z2 )   // 11
+
+    // Row z3:
+    ( $x0  $y0  $z3 )   // 12
+    ( $x1  $y0  $z3 )   // 13
+    ( $x2  $y0  $z3 )   // 14
+    ( $x3  $y0  $z3 )   // 15
+
+    // --- y = y1  plane (top wall, z = z0..z3) ---
+    // Row z0:
+    ( $x0  $y1  $z0 )   // 16
+    ( $x1  $y1  $z0 )   // 17
+    ( $x2  $y1  $z0 )   // 18
+    ( $x3  $y1  $z0 )   // 19
+
+    // Row z1:
+    ( $x0  $y1  $z1 )   // 20
+    ( $x1  $y1  $z1 )   // 21
+    ( $x2  $y1  $z1 )   // 22
+    ( $x3  $y1  $z1 )   // 23
+
+    // Row z2:
+    ( $x0  $y1  $z2 )   // 24
+    ( $x1  $y1  $z2 )   // 25
+    ( $x2  $y1  $z2 )   // 26
+    ( $x3  $y1  $z2 )   // 27
+
+    // Row z3:
+    ( $x0  $y1  $z3 )   // 28
+    ( $x1  $y1  $z3 )   // 29
+    ( $x2  $y1  $z3 )   // 30
+    ( $x3  $y1  $z3 )   // 31
 );
 
 blocks
 (
-    // B0_y0
-    hex (0 1 6 5 20 21 26 25) (16 24 58) simpleGrading (1 1 165)
-    // B1a_y0
-    hex (1 2 7 6 21 22 27 26) (60 24 58) simpleGrading (1 1 165)
-    // B1b_y0
-    hex (2 3 8 7 22 23 28 27) (60 24 58) simpleGrading (1 1 165)
-    // B2_y0
-    hex (3 4 9 8 23 24 29 28) (80 24 58) simpleGrading (4 1 165)
-    // B0_y1
-    hex (5 6 11 10 25 26 31 30) (16 48 58) simpleGrading (1 1 165)
-    // B1a_y1
-    hex (6 7 12 11 26 27 32 31) (60 48 58) simpleGrading (1 1 165)
-    // B1b_y1
-    hex (7 8 13 12 27 28 33 32) (60 48 58) simpleGrading (1 1 165)
-    // B2_y1
-    hex (8 9 14 13 28 29 34 33) (80 48 58) simpleGrading (4 1 165)
-    // B0_y2
-    hex (10 11 16 15 30 31 36 35) (16 24 58) simpleGrading (1 1 165)
-    // B1a_y2
-    hex (11 12 17 16 31 32 37 36) (60 24 58) simpleGrading (1 1 165)
-    // B1b_y2
-    hex (12 13 18 17 32 33 38 37) (60 24 58) simpleGrading (1 1 165)
-    // B2_y2
-    hex (13 14 19 18 33 34 39 38) (80 24 58) simpleGrading (4 1 165)
-    // B3a_lo_y0
-    hex (21 22 27 26 40 41 45 44) (60 24 18) simpleGrading (1 1 0.404)
-    // B3b_lo_y0
-    hex (22 23 28 27 41 42 46 45) (60 24 18) simpleGrading (1 1 0.404)
-    // B4_lo_y0
-    hex (23 24 29 28 42 43 47 46) (80 24 18) simpleGrading (4 1 0.404)
-    // B3a_lo_y1
-    hex (26 27 32 31 44 45 49 48) (60 48 18) simpleGrading (1 1 0.404)
-    // B3b_lo_y1
-    hex (27 28 33 32 45 46 50 49) (60 48 18) simpleGrading (1 1 0.404)
-    // B4_lo_y1
-    hex (28 29 34 33 46 47 51 50) (80 48 18) simpleGrading (4 1 0.404)
-    // B3a_lo_y2
-    hex (31 32 37 36 48 49 53 52) (60 24 18) simpleGrading (1 1 0.404)
-    // B3b_lo_y2
-    hex (32 33 38 37 49 50 54 53) (60 24 18) simpleGrading (1 1 0.404)
-    // B4_lo_y2
-    hex (33 34 39 38 50 51 55 54) (80 24 18) simpleGrading (4 1 0.404)
-    // B3a_up_y0
-    hex (40 41 45 44 56 57 61 60) (60 24 63) simpleGrading (1 1 2)
-    // B3b_up_y0
-    hex (41 42 46 45 57 58 62 61) (60 24 63) simpleGrading (1 1 2)
-    // B4_up_y0
-    hex (42 43 47 46 58 59 63 62) (80 24 63) simpleGrading (4 1 2)
-    // B3a_up_y1
-    hex (44 45 49 48 60 61 65 64) (60 48 63) simpleGrading (1 1 2)
-    // B3b_up_y1
-    hex (45 46 50 49 61 62 66 65) (60 48 63) simpleGrading (1 1 2)
-    // B4_up_y1
-    hex (46 47 51 50 62 63 67 66) (80 48 63) simpleGrading (4 1 2)
-    // B3a_up_y2
-    hex (48 49 53 52 64 65 69 68) (60 24 63) simpleGrading (1 1 2)
-    // B3b_up_y2
-    hex (49 50 54 53 65 66 70 69) (60 24 63) simpleGrading (1 1 2)
-    // B4_up_y2
-    hex (50 51 55 54 66 67 71 70) (80 24 63) simpleGrading (4 1 2)
+    // ================================================================
+    //  9 blocks: 3 (x) × 1 (y) × 3 (z)
+    //
+    //  Y-grading: symmetric BL at both walls
+    //    Section 1:  4.6% of height, 30 cells, expansion 300    → bottom BL, h1 ~ 1.2 µm
+    //    Section 2: 90.8% of height, 50 cells, expansion 1.0    → bulk (uniform)
+    //    Section 3:  4.6% of height, 30 cells, expansion 1/300  → top BL, h1 ~ 1.2 µm
+    //
+    //  X-grading:
+    //    B1 (upstream):   compression towards x1 → expansion ratio 0.4
+    //    B2 (jet zone):   uniform
+    //    B3 (downstream): expansion away from x2 → expansion ratio 3.0
+    //
+    //  Z-grading:
+    //    B1 (z0→z1): compression towards z1 → expansion ratio 0.4
+    //    B2 (z1→z2): uniform
+    //    B3 (z2→z3): expansion away from z2 → expansion ratio 2.5
+    // ================================================================
+
+    // Block naming convention: bX_Z  (x-block _ z-block)
+
+    // --- z-block 1: z0 → z1 ---
+    // b1_1: upstream, outer-z
+    hex ( 0  1  17 16   4  5  21 20 )
+    ( 25 110 20 )
+    simpleGrading
+    (
+        0.4                                         // x: compress towards jet
+        ((0.046 30 300)(0.908 50 1.0)(0.046 30 0.00333))              // y: BL grading
+        0.4                                         // z: compress towards centre
+    )
+
+    // b2_1: jet zone, outer-z
+    hex ( 1  2  18 17   5  6  22 21 )
+    ( 60 110 20 )
+    simpleGrading
+    (
+        1                                           // x: uniform
+        ((0.046 30 300)(0.908 50 1.0)(0.046 30 0.00333))              // y: BL grading
+        0.4                                         // z: compress towards centre
+    )
+
+    // b3_1: downstream, outer-z
+    hex ( 2  3  19 18   6  7  23 22 )
+    ( 60 110 20 )
+    simpleGrading
+    (
+        3.0                                         // x: expand downstream
+        ((0.046 30 300)(0.908 50 1.0)(0.046 30 0.00333))              // y: BL grading
+        0.4                                         // z: compress towards centre
+    )
+
+    // --- z-block 2: z1 → z2 (jet zone in z) ---
+    // b1_2: upstream, centre-z
+    hex ( 4  5  21 20   8  9  25 24 )
+    ( 25 110 60 )
+    simpleGrading
+    (
+        0.4                                         // x
+        ((0.046 30 300)(0.908 50 1.0)(0.046 30 0.00333))              // y
+        1                                           // z: uniform
+    )
+
+    // b2_2: jet zone centre — FINEST BLOCK
+    hex ( 5  6  22 21   9  10 26 25 )
+    ( 60 110 60 )
+    simpleGrading
+    (
+        1                                           // x: uniform
+        ((0.046 30 300)(0.908 50 1.0)(0.046 30 0.00333))              // y
+        1                                           // z: uniform
+    )
+
+    // b3_2: downstream, centre-z
+    hex ( 6  7  23 22   10 11 27 26 )
+    ( 60 110 60 )
+    simpleGrading
+    (
+        3.0                                         // x
+        ((0.046 30 300)(0.908 50 1.0)(0.046 30 0.00333))              // y
+        1                                           // z: uniform
+    )
+
+    // --- z-block 3: z2 → z3 ---
+    // b1_3: upstream, outer-z
+    hex ( 8  9  25 24   12 13 29 28 )
+    ( 25 110 20 )
+    simpleGrading
+    (
+        0.4                                         // x
+        ((0.046 30 300)(0.908 50 1.0)(0.046 30 0.00333))              // y
+        2.5                                         // z: expand outward
+    )
+
+    // b2_3: jet zone, outer-z
+    hex ( 9  10 26 25   13 14 30 29 )
+    ( 60 110 20 )
+    simpleGrading
+    (
+        1                                           // x
+        ((0.046 30 300)(0.908 50 1.0)(0.046 30 0.00333))              // y
+        2.5                                         // z: expand outward
+    )
+
+    // b3_3: downstream, outer-z
+    hex ( 10 11 27 26   14 15 31 30 )
+    ( 60 110 20 )
+    simpleGrading
+    (
+        3.0                                         // x
+        ((0.046 30 300)(0.908 50 1.0)(0.046 30 0.00333))              // y
+        2.5                                         // z: expand outward
+    )
 );
 
-edges ();
-
-patches
+edges
 (
-    patch gasInlet
-    (
-        (0 5 25 20)
-        (5 10 30 25)
-        (10 15 35 30)
-    )
-
-    patch outletRight
-    (
-        (4 9 29 24)
-        (24 29 47 43)
-        (43 47 63 59)
-        (9 14 34 29)
-        (29 34 51 47)
-        (47 51 67 63)
-        (14 19 39 34)
-        (34 39 55 51)
-        (51 55 71 67)
-    )
-
-    patch outletTop
-    (
-        (56 57 61 60)
-        (57 58 62 61)
-        (58 59 63 62)
-        (60 61 65 64)
-        (61 62 66 65)
-        (62 63 67 66)
-        (64 65 69 68)
-        (65 66 70 69)
-        (66 67 71 70)
-    )
-
-    wall bottomWall
-    (
-        (0 1 6 5)
-        (1 2 7 6)
-        (2 3 8 7)
-        (3 4 9 8)
-        (5 6 11 10)
-        (6 7 12 11)
-        (7 8 13 12)
-        (8 9 14 13)
-        (10 11 16 15)
-        (11 12 17 16)
-        (12 13 18 17)
-        (13 14 19 18)
-    )
-
-    wall filmTopWall
-    (
-        (20 21 26 25)
-        (25 26 31 30)
-        (30 31 36 35)
-    )
-
-    wall stepWall
-    (
-        (21 26 44 40)
-        (40 44 60 56)
-        (26 31 48 44)
-        (44 48 64 60)
-        (31 36 52 48)
-        (48 52 68 64)
-    )
-
-    symmetryPlane front
-    (
-        (0 1 21 20)
-        (1 2 22 21)
-        (2 3 23 22)
-        (3 4 24 23)
-        (21 22 41 40)
-        (22 23 42 41)
-        (23 24 43 42)
-        (40 41 57 56)
-        (41 42 58 57)
-        (42 43 59 58)
-    )
-
-    symmetryPlane back
-    (
-        (15 35 36 16)
-        (16 36 37 17)
-        (17 37 38 18)
-        (18 38 39 19)
-        (36 52 53 37)
-        (37 53 54 38)
-        (38 54 55 39)
-        (52 68 69 53)
-        (53 69 70 54)
-        (54 70 71 55)
-    )
-
 );
 
-mergePatchPairs ();
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            // x = x0 face, all z-blocks
+            ( 0   16  20  4  )
+            ( 4   20  24  8  )
+            ( 8   24  28  12 )
+        );
+    }
+
+    wallTop
+    {
+        type wall;
+        faces
+        (
+            // y = y1 face (top wall), all blocks
+            ( 16 17 21 20 )
+            ( 17 18 22 21 )
+            ( 18 19 23 22 )
+            ( 20 21 25 24 )
+            ( 21 22 26 25 )
+            ( 22 23 27 26 )
+            ( 24 25 29 28 )
+            ( 25 26 30 29 )
+            ( 26 27 31 30 )
+        );
+    }
+
+    outletRight
+    {
+        type patch;
+        faces
+        (
+            // x = x3 face (downstream outlet)
+            ( 3   7  23  19 )
+            ( 7  11  27  23 )
+            ( 11 15  31  27 )
+        );
+    }
+
+    wallBottom
+    {
+        type wall;
+        faces
+        (
+            // y = y0 face (bottom wall — injector wall)
+            ( 0   1   5   4  )
+            ( 1   2   6   5  )
+            ( 2   3   7   6  )
+            ( 4   5   9   8  )
+            ( 5   6  10   9  )
+            ( 6   7  11  10  )
+            ( 8   9  13  12  )
+            ( 9  10  14  13  )
+            ( 10 11  15  14  )
+        );
+    }
+
+    front
+    {
+        type symmetry;
+        faces
+        (
+            // z = z3 face
+            ( 12 13 29 28 )
+            ( 13 14 30 29 )
+            ( 14 15 31 30 )
+        );
+    }
+
+    back
+    {
+        type symmetry;
+        faces
+        (
+            // z = z0 face
+            ( 0   1  17  16 )
+            ( 1   2  18  17 )
+            ( 2   3  19  18 )
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
 
 // ************************************************************************* //
