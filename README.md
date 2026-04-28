@@ -283,11 +283,15 @@ Case-specific run scripts are stored under each case folder in `runScripts/`. Th
 
 ## References
 
-- Wu, P.K. et al. (1997). *Breakup processes of liquid jets in subsonic crossflows*. Atomization and Sprays.
-- Zhang, Y. et al. – subsonic crossflow atomization benchmark.
+- Wu, P.K., Kirkendall, K.A., Fuller, R.P., & Nejad, A.S. (1997). *Breakup processes of liquid jets in subsonic crossflows*. Journal of Propulsion and Power.
+- Zhang, Y. et al. – *Subsonic crossflow atomization benchmark*.
 - Madabhushi, R.K. (2003). *A Model for Numerical Simulation of Breakup of a Liquid Jet in Crossflow*. Atomization and Sprays, 13(4).
 - Lambert, A. et al. (2019). *Enhancement of the Madabhushi LJICF Breakup Model by a Ligament Breakup Mechanism*. ILASS-Europe.
-- Pilch, M. & Erdman, C.A. (1987). *Use of breakup time data and velocity history data to predict the maximum size of stable fragments*. International Journal of Multiphase Flow.
-- Sun, D. & Xiao, H. (2015). *Diffusion-based coarse graining in hybrid continuum-discrete solvers: Theoretical formulation and a priori tests*. International Journal of Multiphase Flow, 77, 142–157.
-- Esgandari, B. et al. (2025). *Diffusion-based smoothing of Lagrangian source terms in Euler-Lagrange simulations*. Journal of Multiphase Flow, 188, 105223.
-- ANSYS Fluent Theory Guide, Ch. 12: *Gaussian kernel for mesh node averaging*.
+- Pilch, M., & Erdman, C.A. (1987). *Use of breakup time data and velocity history data to predict the maximum size of stable fragments*. International Journal of Multiphase Flow.
+- Reitz, R.D. (1987). *Modeling atomization processes in high-pressure vaporizing sprays*. Atomization and Spray Technology.
+- Lin, K.-C., Kennedy, P.J., & Jackson, T.A. (2004). *Structures of water jets in a Mach 1.94 supersonic crossflow*. AIAA.
+- Schmehl, R., Klose, G., Maier, G., & Wittig, S. (1997). *Efficient numerical calculation of evaporating sprays in combustion chamber flows*.
+- Sun, D., & Xiao, H. (2015). *Diffusion-based coarse graining in hybrid continuum-discrete solvers: Theoretical formulation and a priori tests*. International Journal of Multiphase Flow, 77, 142–157.
+- Esgandari, B. et al. (2025). *Diffusion-based smoothing of Lagrangian source terms in Euler–Lagrange simulations*. International Journal of Multiphase Flow, 188, 105223.
+- Zhang, M. et al. (2026). *Atomization dynamics of gas-liquid orifice type pintle injector under different local momentum ratios*. Aerospace Science and Technology.
+- ANSYS Fluent Theory Guide. *Gaussian kernel for mesh node averaging*, Chapter 12.
