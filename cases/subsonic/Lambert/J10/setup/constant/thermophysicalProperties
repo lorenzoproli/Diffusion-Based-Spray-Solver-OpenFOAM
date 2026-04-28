@@ -14,14 +14,12 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 //
-// FASE 2 — sprayFoam (transient, spray H2O in crossflow N2)
+// FASE 2 — sprayFoam (transient, spray JetA1 in crossflow aria N2+O2)
 //
-// Copiare come constant/thermophysicalProperties prima del run sprayFoam:
-//   cp constant/thermophysicalProperties.spray constant/thermophysicalProperties
-//
-// Specie nel meccanismo: N2 (inerte, portante) + H2O (liquido spray).
+// Surrogato Jet-A1: C10H22 (n-decano), phaseChangeModel none (no evaporazione).
+// Gas: aria secca = N2 (0.767) + O2 (0.233).
 // Nessuna reazione (chemistry off, combustionModel none).
-// CHEMKIN letto solo per definire le proprieta' termofisiche delle specie.
+// CHEMKIN letto solo per definire le proprieta' termofisiche delle specie gassose.
 //
 
 thermoType
@@ -45,7 +43,7 @@ inertSpecie     N2;
 
 liquids
 {
-    H2O;
+    C10H22;
 }
 
 solids {}

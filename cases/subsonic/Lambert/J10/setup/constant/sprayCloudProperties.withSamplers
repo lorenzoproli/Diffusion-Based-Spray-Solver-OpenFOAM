@@ -218,7 +218,7 @@ cloudFunctions
     parcelPlaneSampler_30d
     {
         type                        parcelPlaneSampler;
-        active true;
+        active false;
         polygons
         (
             (
@@ -236,7 +236,7 @@ cloudFunctions
     parcelPlaneSampler_60d
     {
         type                        parcelPlaneSampler;
-        active true;
+        active false;
         polygons
         (
             (
