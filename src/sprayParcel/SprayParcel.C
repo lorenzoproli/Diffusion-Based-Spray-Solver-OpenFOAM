@@ -330,6 +330,16 @@ void Foam::SprayParcel<ParcelType>::calcBreakup
         )
     )
     {
+        // Apply an optional user_ update requested by the breakup model
+        // after the breakup state has been computed. This avoids changing
+        // the parent user_ before the model decides the current regime, but
+        // still lets the retained parent fragment be reclassified correctly.
+        const scalar parentUserUpdate = cloud.breakup().parentUserUpdate();
+        if (parentUserUpdate > -0.5)
+        {
+            this->user() = parentUserUpdate;
+        }
+
         // ----------------------------------------------------------------
         // FIX-SP1: The block that previously modified this->user() here
         // (setting it to 1.0 or 2.0 based on ms()) has been removed.
@@ -351,7 +361,7 @@ void Foam::SprayParcel<ParcelType>::calcBreakup
         // ----------------------------------------------------------------
         // FIX-SP2: structured debug log — parent state at cloning time
         // ----------------------------------------------------------------
-        if (breakup.debug())
+        if (breakup.debug)
         {
             sprayParcelLogFile()
                 << "CLONE_FIRST_CHILD,"
@@ -376,7 +386,7 @@ void Foam::SprayParcel<ParcelType>::calcBreakup
         child->d0() = dChild;
         const scalar massChild = child->mass();
         child->mass0() = massChild;
-        child->nParticle() = parcelMassChild/massChild;
+        child->nParticle() = parcelMassChild/(massChild + ROOTVSMALL);
 
         // Recompute relative velocity and Reynolds for the new child
         const vector UrelChild = child->U() - td.Uc();
@@ -427,7 +437,7 @@ void Foam::SprayParcel<ParcelType>::calcBreakup
                     this->U() = pvel;
 
                     // FIX-SP2: log parent velocity restore
-                    if (breakup.debug())
+                    if (breakup.debug)
                     {
                         sprayParcelLogFile()
                             << "PARENT_VEL_RESTORE,"
@@ -454,7 +464,7 @@ void Foam::SprayParcel<ParcelType>::calcBreakup
 
                 const scalar mExtraChild = extraChild->mass();
                 extraChild->mass0() = mExtraChild;
-                extraChild->nParticle() = pmass/mExtraChild;
+                extraChild->nParticle() = pmass/(mExtraChild + ROOTVSMALL);
 
                 extraChild->U() = pvel;
 
@@ -485,7 +495,7 @@ void Foam::SprayParcel<ParcelType>::calcBreakup
                 extraChild->calcDispersion(cloud, td, dt);
 
                 // FIX-SP2: log extra child creation
-                if (breakup.debug())
+                if (breakup.debug)
                 {
                     sprayParcelLogFile()
                         << "CLONE_EXTRA_CHILD,"

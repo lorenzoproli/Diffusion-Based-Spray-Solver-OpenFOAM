@@ -158,7 +158,7 @@ public:
         {
             return TABtwoWeCrit_;
         }
-    
+
         //- ms value for child parcel (default: -GREAT as in original code)
         //  Override in models that use ms as a flag.
         virtual scalar childMsInit() const
@@ -200,6 +200,13 @@ public:
         virtual scalar pendingChildUserFlag() const
         {
             return 0.0;
+        }
+
+        //- Optional user_ update for the retained parent parcel after
+        //  a breakup event. -GREAT means no update.
+        virtual scalar parentUserUpdate() const
+        {
+            return -GREAT;
         }
 
         virtual void clearPendingChildren()
