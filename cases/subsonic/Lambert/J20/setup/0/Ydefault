@@ -15,16 +15,13 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Frazione massica default per specie non esplicitamente definite
-// Tipicamente usato da sprayFoam per il vapore del liquido iniettato
-
 dimensions      [0 0 0 0 0 0 0];
 
 internalField   uniform 0;
 
 boundaryField
 {
-    gasInlet
+    inlet
     {
         type            fixedValue;
         value           uniform 0;
@@ -37,36 +34,24 @@ boundaryField
         value           uniform 0;
     }
 
-    outletTop
-    {
-        type            inletOutlet;
-        inletValue      uniform 0;
-        value           uniform 0;
-    }
-
-    bottomWall
+    wallTop
     {
         type            zeroGradient;
     }
 
-    filmTopWall
-    {
-        type            zeroGradient;
-    }
-
-    stepWall
+    wallBottom
     {
         type            zeroGradient;
     }
 
     front
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 
     back
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 }
 

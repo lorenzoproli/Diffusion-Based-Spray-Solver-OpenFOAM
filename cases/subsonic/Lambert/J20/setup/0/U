@@ -41,14 +41,12 @@ boundaryField
         value           uniform (112 0 0);
     }
 
-    outletTop
+    wallTop
     {
-        type            pressureInletOutletVelocity;
-        inletValue      uniform (0 0 0);
-        value           uniform (112 0 0);
+        type            noSlip;
     }
 
-    wall
+    wallBottom
     {
         type            noSlip;
     }
