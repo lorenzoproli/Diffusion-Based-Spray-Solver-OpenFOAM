@@ -14,58 +14,53 @@ FoamFile
     object      U;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-// U_inf = 62.5 m/s in direzione crossflow (X)
+//
+// Lambert (ILASS 2019) — caso J=10, We=1500
+// rho_g = 506625/(287*300) = 5.884 kg/m3
+// We = rho_g * u_g^2 * D_jet / sigma = 1500
+// sigma_JetA1 = 0.0225 N/m a 300 K
+// u_g = sqrt(1500*0.0225/(5.884*0.000457)) = 112 m/s
+//
 
 dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform (62.5 0 0);
+internalField   uniform (112 0 0);
 
 boundaryField
 {
-    gasInlet
+    inlet
     {
         type            fixedValue;
-        value           uniform (62.5 0 0);
+        value           uniform (112 0 0);
     }
 
     outletRight
     {
         type            pressureInletOutletVelocity;
-        inletValue      uniform (0 0 0);    // backflow a vel nulla
-        value           uniform (62.5 0 0);
+        inletValue      uniform (0 0 0);
+        value           uniform (112 0 0);
     }
 
     outletTop
     {
         type            pressureInletOutletVelocity;
-        inletValue      uniform (0 0 0);    // backflow a vel nulla
-        value           uniform (62.5 0 0);
+        inletValue      uniform (0 0 0);
+        value           uniform (112 0 0);
     }
 
-    bottomWall
-    {
-        type            noSlip;
-    }
-
-    filmTopWall
-    {
-        type            noSlip;
-    }
-
-    stepWall
+    wall
     {
         type            noSlip;
     }
 
     front
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 
     back
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 }
 

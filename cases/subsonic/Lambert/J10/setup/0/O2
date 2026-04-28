@@ -11,44 +11,42 @@ FoamFile
     format      ascii;
     class       volScalarField;
     location    "0";
-    object      omega;
+    object      O2;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 //
-// omega = Cmu^(-0.25) * k^0.5 / L_t
-// L_t = 0.07 * D_h = 0.07 * 0.04318 = 0.003023 m
-// omega = 1.8257 * sqrt(47.0) / 0.003023 = 4140 s^-1
+// Aria secca: Y_O2 = 0.233 (23.3% massa)
+// Y_N2 = 0.767 (inertSpecie, calcolato come 1 - Y_O2 - Y_H2O)
+// M_mix = 1/(0.767/28.014 + 0.233/32.0) = 28.84 g/mol  (vs. aria 28.97)
 //
 
-dimensions      [0 0 -1 0 0 0 0];
+dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 4140;
+internalField   uniform 0.233;
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 4140;
+        value           uniform 0.233;
     }
 
     outletRight
     {
         type            inletOutlet;
-        inletValue      uniform 4140;
-        value           uniform 4140;
+        inletValue      uniform 0.233;
+        value           uniform 0.233;
     }
 
     wallTop
     {
-        type            omegaWallFunction;
-        value           uniform 4140;
+        type            zeroGradient;
     }
 
     wallBottom
     {
-        type            omegaWallFunction;
-        value           uniform 4140;
+        type            zeroGradient;
     }
 
     front

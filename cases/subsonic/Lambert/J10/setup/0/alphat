@@ -15,16 +15,13 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Diffusività termica turbolenta [kg/(m s)]
-// Calcolata dal solver (campo derived), inizialmente zero
-
 dimensions      [1 -1 -1 0 0 0 0];
 
 internalField   uniform 0;
 
 boundaryField
 {
-    gasInlet
+    inlet
     {
         type            calculated;
         value           uniform 0;
@@ -36,27 +33,14 @@ boundaryField
         value           uniform 0;
     }
 
-    outletTop
-    {
-        type            calculated;
-        value           uniform 0;
-    }
-
-    bottomWall
+    wallTop
     {
         type            compressible::alphatWallFunction;
         Prt             0.85;
         value           uniform 0;
     }
 
-    filmTopWall
-    {
-        type            compressible::alphatWallFunction;
-        Prt             0.85;
-        value           uniform 0;
-    }
-
-    stepWall
+    wallBottom
     {
         type            compressible::alphatWallFunction;
         Prt             0.85;
@@ -65,12 +49,12 @@ boundaryField
 
     front
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 
     back
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 }
 

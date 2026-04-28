@@ -14,24 +14,19 @@ FoamFile
     object      p;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-// Pressione statica assoluta [Pa]
-// Compatibile con sprayFoam (rhoThermo comprimibile)
 //
-// FIX: outletTop e outletRight da fixedValue a totalPressure
-//      per replicare il "pressure outlet" di Fluent (Zhang et al.),
-//      che usa p_totale durante il backflow, limitando naturalmente
-//      la velocità di rientro.  Con fixedValue la pressione statica
-//      costante genera un gradiente artificiale che guida backflow
-//      troppo forte (Ux negativo anomalo sulla fascia superiore).
+// Lambert (ILASS 2019): p = 506625 Pa = 5 atm, T = 300 K
+// Inlet: zeroGradient (velocità imposta → p si adatta)
+// Outlets: totalPressure per replicare pressure-outlet di Fluent
+//
 
 dimensions      [1 -1 -2 0 0 0 0];
 
-internalField   uniform 101325;
+internalField   uniform 506625;
 
 boundaryField
 {
-    gasInlet
+    inlet
     {
         type            zeroGradient;
     }
@@ -42,46 +37,30 @@ boundaryField
         rho             rho;
         psi             thermo:psi;
         gamma           1.4;
-        p0              uniform 101325;
-        value           uniform 101325;
+        p0              uniform 506625;
+        value           uniform 506625;
     }
 
-    outletTop
-    {
-        type            totalPressure;
-        rho             rho;
-        psi             thermo:psi;
-        gamma           1.4;
-        p0              uniform 101325;
-        value           uniform 101325;
-    }
-
-    bottomWall
+    wallTop
     {
         type            fixedFluxPressure;
-        value           uniform 101325;
+        value           uniform 506625;
     }
 
-    filmTopWall
+    wallBottom
     {
         type            fixedFluxPressure;
-        value           uniform 101325;
-    }
-
-    stepWall
-    {
-        type            fixedFluxPressure;
-        value           uniform 101325;
+        value           uniform 506625;
     }
 
     front
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 
     back
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 }
 

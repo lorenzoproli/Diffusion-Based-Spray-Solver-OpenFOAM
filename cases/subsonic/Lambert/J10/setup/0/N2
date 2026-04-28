@@ -15,57 +15,44 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Frazione massica N2 = 1 (gas carrier puro)
-
 dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 1;
+// inertSpecie: Y_N2 = 1 - Y_O2 - Y_H2O = 1 - 0.233 = 0.767 (dry air)
+internalField   uniform 0.767;
 
 boundaryField
 {
-    gasInlet
+    inlet
     {
         type            fixedValue;
-        value           uniform 1;
+        value           uniform 0.767;
     }
 
     outletRight
     {
         type            inletOutlet;
-        inletValue      uniform 1;
-        value           uniform 1;
+        inletValue      uniform 0.767;
+        value           uniform 0.767;
     }
 
-    outletTop
-    {
-        type            inletOutlet;
-        inletValue      uniform 1;
-        value           uniform 1;
-    }
-
-    bottomWall
+    wallTop
     {
         type            zeroGradient;
     }
 
-    filmTopWall
-    {
-        type            zeroGradient;
-    }
-
-    stepWall
+    wallBottom
     {
         type            zeroGradient;
     }
 
     front
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 
     back
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 }
 

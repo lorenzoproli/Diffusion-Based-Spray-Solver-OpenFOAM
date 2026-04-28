@@ -14,48 +14,50 @@ FoamFile
     object      k;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-// k = 1.5*(U_inf * Tu)^2 con Tu = 5%
-// k = 1.5*(62.5*0.05)^2 = 1.5*9.765 ≈ 14.6 m^2/s^2
+//
+// k = 1.5*(U_inf*Tu)^2 con Tu=5%
+// k = 1.5*(112*0.05)^2 = 1.5*31.36 = 47.0 m^2/s^2
+//
 
 dimensions      [0 2 -2 0 0 0 0];
 
-internalField   uniform 14.6;
+internalField   uniform 47.0;
 
 boundaryField
 {
-    gasInlet
+    inlet
     {
         type            fixedValue;
-        value           uniform 14.6;
+        value           uniform 47.0;
     }
 
     outletRight
     {
         type            inletOutlet;
-        inletValue      uniform 14.6;
-        value           uniform 14.6;
+        inletValue      uniform 47.0;
+        value           uniform 47.0;
     }
 
-    outletTop
+    wallTop
     {
-        type            inletOutlet;
-        inletValue      uniform 14.6;
-        value           uniform 14.6;
+        type            kqRWallFunction;
+        value           uniform 0;
     }
 
-    bottomWall  { type kqRWallFunction; value uniform 0; }
-    filmTopWall { type kqRWallFunction; value uniform 0; }
-    stepWall    { type kqRWallFunction; value uniform 0; }
+    wallBottom
+    {
+        type            kqRWallFunction;
+        value           uniform 0;
+    }
 
     front
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 
     back
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 }
 

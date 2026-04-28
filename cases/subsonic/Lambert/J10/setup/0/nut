@@ -14,46 +14,35 @@ FoamFile
     object      nut;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-// nut = Cmu * k / omega = 0.09 * 14.6 / 7800 ≈ 1.69e-4 m^2/s
+//
+// nut = Cmu * k / omega = 0.09 * 47.0 / 4140 = 1.02e-3 m^2/s
+//
 
 dimensions      [0 2 -1 0 0 0 0];
 
-internalField   uniform 1.69e-4;
+internalField   uniform 1.02e-3;
 
 boundaryField
 {
-    gasInlet
+    inlet
     {
         type            calculated;
-        value           uniform 1.69e-4;
+        value           uniform 1.02e-3;
     }
 
     outletRight
     {
         type            calculated;
-        value           uniform 1.69e-4;
+        value           uniform 1.02e-3;
     }
 
-    outletTop
-    {
-        type            calculated;
-        value           uniform 1.69e-4;
-    }
-
-    bottomWall
+    wallTop
     {
         type            nutkWallFunction;
         value           uniform 0;
     }
 
-    filmTopWall
-    {
-        type            nutkWallFunction;
-        value           uniform 0;
-    }
-
-    stepWall
+    wallBottom
     {
         type            nutkWallFunction;
         value           uniform 0;
@@ -61,12 +50,12 @@ boundaryField
 
     front
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 
     back
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 }
 

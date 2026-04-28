@@ -14,56 +14,47 @@ FoamFile
     object      T;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+//
+// Lambert (ILASS 2019): T_gas = 300 K
+//
 
 dimensions      [0 0 0 1 0 0 0];
 
-internalField   uniform 288;
+internalField   uniform 300;
 
 boundaryField
 {
-    gasInlet
+    inlet
     {
         type            fixedValue;
-        value           uniform 288;
+        value           uniform 300;
     }
 
     outletRight
     {
         type            inletOutlet;
-        inletValue      uniform 288;
-        value           uniform 288;
+        inletValue      uniform 300;
+        value           uniform 300;
     }
 
-    outletTop
-    {
-        type            inletOutlet;
-        inletValue      uniform 288;
-        value           uniform 288;
-    }
-
-    bottomWall
+    wallTop
     {
         type            zeroGradient;
     }
 
-    filmTopWall
-    {
-        type            zeroGradient;
-    }
-
-    stepWall
+    wallBottom
     {
         type            zeroGradient;
     }
 
     front
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 
     back
     {
-        type            symmetryPlane;
+        type            symmetry;
     }
 }
 
