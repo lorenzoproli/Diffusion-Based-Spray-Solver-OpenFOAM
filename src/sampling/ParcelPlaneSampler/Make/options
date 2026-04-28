@@ -1,0 +1,37 @@
+EXE_INC = \
+    -I$(LIB_SRC)/lagrangian/basic/lnInclude \
+    -I$(LIB_SRC)/lagrangian/intermediate/lnInclude \
+    -I$(LIB_SRC)/lagrangian/spray/lnInclude \
+    -I$(LIB_SRC)/lagrangian/distributionModels/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/finiteArea/lnInclude \
+    -I$(LIB_SRC)/faOptions/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/specie/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/solidSpecie/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/SLGThermo/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/reactionThermo/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/thermophysicalProperties/lnInclude \
+    -I$(LIB_SRC)/transportModels/compressible/lnInclude \
+    -I$(LIB_SRC)/regionModels/regionModel/lnInclude \
+    -I$(LIB_SRC)/regionModels/surfaceFilmModels/lnInclude \
+    -I$(LIB_SRC)/regionFaModels/lnInclude
+
+LIB_LIBS = \
+    -llagrangian \
+    -llagrangianIntermediate \
+    -llagrangianSpray \
+    -lfiniteVolume \
+    -lfiniteArea \
+    -lfaOptions \
+    -lmeshTools \
+    -lspecie \
+    -lfluidThermophysicalModels \
+    -lthermophysicalProperties \
+    -lSLGThermo \
+    -lreactionThermophysicalModels \
+    -lcompressibleTransportModels \
+    -lregionModels \
+    -lsurfaceFilmModels \
+    -lregionFaModels
