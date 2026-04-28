@@ -77,7 +77,7 @@ Thesis-Lagrangian-Solver/
 │
 ├── cases/
 │   └── subsonic/
-│       └── Wu_case/                # Validation case (Wu et al. crossflow)
+│       └── Zhang_case/                # Validation case (Wu et al. crossflow)
 │           ├── 0/                  # Initial conditions
 │           ├── constant/           # Mesh + physical properties
 │           │   ├── smoothingProperties   # DBM bandwidth parameter
@@ -132,7 +132,7 @@ This single implicit step is mathematically equivalent to convolving the PCM fie
 The bandwidth is set in `constant/smoothingProperties`:
 
 ```c++
-smoothBandwidth   0.0048;   // [m] → 3 × Dinj for Wu case (Dinj = 1.6 mm)
+smoothBandwidth   0.0048;   // [m] → 3 × Dinj for Zhang case (Dinj = 1.6 mm)
 ```
 
 | Value | Effect |

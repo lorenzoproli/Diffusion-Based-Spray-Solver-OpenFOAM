@@ -1,4 +1,4 @@
-# Wu subsonic crossflow case
+# Zhang subsonic crossflow case
 
 This folder contains the subsonic validation case derived from the reference configuration reported by Wu et al., restricted to the condition with liquid-to-gas momentum ratio:
 
@@ -56,7 +56,7 @@ Although a `blockMeshDict` is available, the full mesh generation pipeline is no
 
 Case-specific post-processing scripts are stored in:
 
-`../../../postProcessing/subsonic/Wu_case/`
+`../../../postProcessing/subsonic/Zhang_case/`
 
 These scripts are used to extract validation quantities such as:
 

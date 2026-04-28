@@ -1,0 +1,10 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      smoothingProperties;
+}
+
+smoothBandwidth   0.0016;   // 1 × Dinj = 1 × 1.6mm — punto di partenza

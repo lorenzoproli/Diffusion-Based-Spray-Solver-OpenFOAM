@@ -1,5 +1,4 @@
 EXE_INC = \
-    -I/home/lorenzo/runs/subsonic/Wu_case_dev \
     -I$(WM_PROJECT_DIR)/applications/solvers/lagrangian/sprayFoam \
     -I$(WM_PROJECT_DIR)/applications/solvers/lagrangian/reactingParcelFoam \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
