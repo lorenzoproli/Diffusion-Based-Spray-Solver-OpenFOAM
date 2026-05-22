@@ -146,6 +146,7 @@ thesis/**/*-blx.bib
 
 # Generated thesis PDFs
 thesis/**/*.pdf
+!thesis/Template_tesi.pdf
 
 # Local Claude state for thesis
 thesis/.claude/local/
