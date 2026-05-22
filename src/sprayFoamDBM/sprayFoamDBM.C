@@ -5,19 +5,29 @@
     \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
-    sprayFoamDBM — sprayFoam with Diffusion-Based source term smoothing.
+    sprayFoamDBM - sprayFoam with Diffusion-Based source-term smoothing.
 
-    Identical to standard sprayFoam except that after parcels.evolve()
+    Identical to standard sprayFoam except that, after parcels.evolve(),
     the accumulated Lagrangian momentum source terms (UTrans, UCoeff)
-    are smoothed via an implicit Laplacian solve (DBM), replicating the
-    Gaussian kernel smoothing available in ANSYS Fluent DPM.
+    are smoothed via a single implicit screened-Poisson solve (DBM).
+    This replicates the Gaussian kernel smoothing available in ANSYS
+    Fluent DPM ("Gaussian Factor" / node-based averaging) and removes
+    the "velocity locking" artefact of the Particle Centroid Method
+    (PCM) in dense regions. For LJICF (pintle) configurations this
+    restores the correct crossflow deflection of the spray.
 
-    This eliminates the "velocity locking" artefact of the Particle
-    Centroid Method (PCM), restoring the correct crossflow deflection
-    for liquid-jet-in-crossflow simulations.
+    NOTE: only the momentum sources (UTrans, UCoeff) are smoothed.
+    Mass (rhoTrans), enthalpy (hsTrans, hsCoeff) and species sources
+    are left at their PCM (per-cell) values. This is acceptable for
+    cold or weakly-evaporating LJICF; for strongly reactive cases the
+    same smoothing should be applied to all coupling terms for global
+    consistency.
 
-    [Sun & Xiao (2015), "Diffusion-based coarse graining in hybrid
-     continuum-discrete solvers", arXiv:1409.0001]
+    References:
+      [1] Sun & Xiao (2015), "Diffusion-based coarse graining in hybrid
+          continuum-discrete solvers", arXiv:1409.0001
+      [2] Capecelatro & Desjardins (2013), JCP 238, 1-31
+      [3] ANSYS Fluent Theory Guide
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
@@ -38,7 +48,7 @@ int main(int argc, char *argv[])
     (
         "Transient solver for compressible, laminar or turbulent"
         " reacting and spraying flow with Lagrangian source-term"
-        " smoothing (DBM Gaussian kernel)."
+        " smoothing (DBM Gaussian-equivalent kernel)."
     );
 
     #include "postProcess.H"
@@ -55,12 +65,12 @@ int main(int argc, char *argv[])
     #include "setInitialDeltaT.H"
     #include "initContinuityErrs.H"
 
-    // DBM smoothing: read parameters and create work fields
+    // DBM smoothing parameters (constant/smoothingProperties)
     #include "createDBMFields.H"
 
     turbulence->validate();
 
-    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info<< "\nStarting time loop\n" << endl;
 
@@ -75,32 +85,30 @@ int main(int argc, char *argv[])
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
         // ---------------------------------------------------------------
-        // Lagrangian cloud evolution (source terms accumulated via PCM)
+        // Lagrangian cloud evolution
+        // (PCM source terms accumulated into UTrans, UCoeff, ...)
         // ---------------------------------------------------------------
         parcels.evolve();
 
         // ---------------------------------------------------------------
-        // DBM: smooth source terms BEFORE the PIMPLE loop uses them.
-        // This is the Gaussian kernel equivalent.
-        // [Sun & Xiao (2015); Fluent: "Gaussian kernel averaging"]
+        // DBM: smooth UTrans and UCoeff before they enter UEqn.
+        // Equivalent to Fluent's Gaussian node-based averaging.
         // ---------------------------------------------------------------
         #include "smoothSourceTerms.H"
 
         // ---------------------------------------------------------------
-        // Eulerian phase solution
+        // Eulerian phase (PIMPLE)
         // ---------------------------------------------------------------
         if (pimple.solveFlow())
         {
             #include "rhoEqn.H"
 
-            // --- Pressure-velocity PIMPLE corrector loop
             while (pimple.loop())
             {
                 #include "UEqn.H"
                 #include "YEqn.H"
                 #include "EEqn.H"
 
-                // --- Pressure corrector loop
                 while (pimple.correct())
                 {
                     #include "pEqn.H"

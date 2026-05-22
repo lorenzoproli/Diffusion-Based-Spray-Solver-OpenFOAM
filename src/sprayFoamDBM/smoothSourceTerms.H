@@ -6,40 +6,66 @@
 // with a Gaussian-equivalent spatial distribution, eliminating the
 // "velocity locking" artefact in dense spray regions.
 //
-// Algorithm:
-//   1. Extract the PCM-accumulated source fields (UTrans, UCoeff)
-//      from the cloud and convert to volumetric densities.
-//   2. Solve the steady-state screened-Poisson equation:
-//        φ_smooth - σ² ∇²φ_smooth = φ_PCM
-//      with zero-gradient BCs on all boundaries (momentum conservation).
-//   3. Write the smoothed fields back to the cloud.
+// Algorithm (per accumulated source field phi):
+//   1. Build the volumetric density on each cell:
+//        phi_PCM = phi_cloud / V
+//   2. Solve the screened Poisson equation:
+//        phi_s - sigma^2 * laplacian(phi_s) = phi_PCM
+//      with zeroGradient on physical patches (Neumann -> conservation)
+//      and the patch's own type on coupled patches (processor/cyclic).
+//   3. Multiply back by V and store in the cloud.
 //
-// The solution at step 2 is mathematically identical to convolving
-// φ_PCM with a 3D Gaussian kernel of bandwidth b = √(4·σ²).
+// The single implicit step is mathematically equivalent to convolving
+// phi_PCM with a Helmholtz/Yukawa kernel of characteristic length
+// b = 2*sigma. For sigma << L_domain this kernel is well-approximated
+// by a Gaussian of bandwidth b.
 //
-// Conservation: guaranteed by the Neumann (zero-gradient) BCs.
-//   ∫φ_smooth dV = ∫φ_PCM dV  (exact to solver tolerance).
+// Conservation:
+//   With Neumann BCs on all physical patches, the screened Poisson
+//   operator preserves the integral, i.e.
+//        sum_i phi_s_i V_i = sum_i phi_PCM_i V_i
+//   to within the linear-solver tolerance.
+//
+// Notes on the implementation:
+//   * The RHS *must* be passed explicitly via "== phi_PCM"; without it
+//     the matrix equation is homogeneous and the solver returns ~0,
+//     which silently zeroes the Lagrangian source (one-way coupling).
+//   * setReference() must NOT be used here: the operator (I - s2*L)
+//     with Neumann BCs is non-singular thanks to the diagonal
+//     contribution of fvm::Sp(1, .).
+//   * The same wordList of patch types is reused for both the vector
+//     field (UTrans) and the scalar field (UCoeff): zeroGradient and
+//     coupled-patch type names are identical for both ranks.
 //
 // References:
 //   [1] Sun & Xiao (2015), arXiv:1409.0001
-//   [2] ANSYS Fluent Theory Guide, "Gaussian kernel for mesh node averaging"
-//   [3] Esgandari et al. (2025), J. Multiphase Flow 188, 105223
+//   [2] Capecelatro & Desjardins (2013), JCP 238, 1-31
+//   [3] ANSYS Fluent Theory Guide,
+//       "Gaussian kernel for mesh node averaging"
+//   [4] Esgandari et al. (2025), J. Multiphase Flow 188, 105223
 // ------------------------------------------------------------------
 
 if (dbmActive)
 {
-    // Patch types: zeroGradient everywhere for conservation
-    const wordList convergencePatchTypes
-    (
-        mesh.boundary().size(),
-        "zeroGradient"
-    );
+    // -------------------------------------------------------------
+    // Patch types:
+    //   physical patches -> zeroGradient (Neumann, conservation)
+    //   coupled patches  -> their own type (processor / cyclic / ...)
+    // -------------------------------------------------------------
+    wordList convergencePatchTypes(mesh.boundary().size(), "zeroGradient");
+    forAll(mesh.boundary(), patchi)
+    {
+        if (mesh.boundary()[patchi].coupled())
+        {
+            convergencePatchTypes[patchi] = mesh.boundary()[patchi].type();
+        }
+    }
 
     // =============================================================
-    // 1. Smooth explicit momentum source: UTrans [kg·m/s per cell]
+    // 1. Smooth explicit momentum source: UTrans  [kg.m/s per cell]
     // =============================================================
     {
-        // Volumetric density of momentum source [kg/(m²·s)]
+        // Volumetric density [kg/(m^2.s)]
         volVectorField convergenceSU
         (
             IOobject
@@ -54,29 +80,28 @@ if (dbmActive)
             dimensionedVector
             (
                 "zero",
-                parcels.UTrans().dimensions() / dimVolume,
+                parcels.UTrans().dimensions()/dimVolume,
                 Zero
             ),
             convergencePatchTypes
         );
 
-        // Map accumulated PCM source to volumetric field
+        // Initialise from the PCM accumulated source
         forAll(convergenceSU, celli)
         {
             convergenceSU[celli] =
-                parcels.UTrans()[celli] / mesh.V()[celli];
+                parcels.UTrans()[celli]/mesh.V()[celli];
         }
         convergenceSU.correctBoundaryConditions();
 
-        // Store the PCM field as RHS
+        // RHS of the screened Poisson equation
         const volVectorField convergenceSU_PCM
         (
             "convergenceSU_PCM",
             convergenceSU
         );
 
-        // Solve: φ_s - σ²·∇²φ_s = φ_PCM
-        // Single implicit step → Gaussian kernel of bandwidth b
+        // Solve  (I - sigma^2 * laplacian) phi_s = phi_PCM
         fvVectorMatrix convergenceSUEqn
         (
             fvm::Sp
@@ -85,24 +110,22 @@ if (dbmActive)
                 convergenceSU
             )
           - fvm::laplacian(dbmSigma2, convergenceSU)
+         ==
+            convergenceSU_PCM
         );
 
-        convergenceSUEqn.setReference(0, Zero);
-        convergenceSUEqn.solve
-        (
-            mesh.solverDict("convergenceSU")
-        );
+        convergenceSUEqn.solve(mesh.solverDict("convergenceSU"));
 
-        // Write back to cloud: convert volumetric → per-cell
+        // Write back: volumetric density -> per-cell accumulator
         forAll(parcels.UTrans(), celli)
         {
             parcels.UTrans()[celli] =
-                convergenceSU[celli] * mesh.V()[celli];
+                convergenceSU[celli]*mesh.V()[celli];
         }
     }
 
     // =============================================================
-    // 2. Smooth implicit drag coefficient: UCoeff [kg per cell]
+    // 2. Smooth implicit drag coefficient: UCoeff  [kg per cell]
     // =============================================================
     {
         volScalarField convergenceSp
@@ -119,7 +142,7 @@ if (dbmActive)
             dimensionedScalar
             (
                 "zero",
-                parcels.UCoeff().dimensions() / dimVolume,
+                parcels.UCoeff().dimensions()/dimVolume,
                 0.0
             ),
             convergencePatchTypes
@@ -128,7 +151,7 @@ if (dbmActive)
         forAll(convergenceSp, celli)
         {
             convergenceSp[celli] =
-                parcels.UCoeff()[celli] / mesh.V()[celli];
+                parcels.UCoeff()[celli]/mesh.V()[celli];
         }
         convergenceSp.correctBoundaryConditions();
 
@@ -146,20 +169,31 @@ if (dbmActive)
                 convergenceSp
             )
           - fvm::laplacian(dbmSigma2, convergenceSp)
+         ==
+            convergenceSp_PCM
         );
 
-        convergenceSpEqn.setReference(0, 0.0);
-        convergenceSpEqn.solve
-        (
-            mesh.solverDict("convergenceSp")
-        );
+        convergenceSpEqn.solve(mesh.solverDict("convergenceSp"));
 
+        // Defensive non-negativity floor: UCoeff is a drag coefficient
+        // and must be >= 0 to keep fvm::Sp(UCoeff/V, U) stable in UEqn.
+        // The screened Poisson operator with f >= 0 and Neumann BCs
+        // preserves positivity (max principle); the clamp guards
+        // against tiny negative residuals from the linear solver.
         forAll(parcels.UCoeff(), celli)
         {
             parcels.UCoeff()[celli] =
-                convergenceSp[celli] * mesh.V()[celli];
+                max(scalar(0), convergenceSp[celli]*mesh.V()[celli]);
         }
     }
+
+    // -------------------------------------------------------------
+    // Optional sanity check (uncomment for debugging):
+    //   the L1 norm of the smoothed field should match the PCM one
+    //   to within solver tolerance (global momentum conservation).
+    // -------------------------------------------------------------
+    // Info<< "DBM check: ||UTrans||_1 = "
+    //     << gSum(mag(parcels.UTrans())()) << endl;
 }
 
 // ************************************************************************* //
