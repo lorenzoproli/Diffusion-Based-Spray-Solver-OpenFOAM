@@ -29,19 +29,29 @@ is regenerated through `blockMesh` (plus any case-specific topology utilities
 referenced in `system/`) as part of the `Allrun_automated` workflow stored
 under each case's `runScripts/`.
 
-Each kernel-study case follows the layout:
+Each kernel-study group (Lambert `J*_kernelStudy/` or Zhang `We*/`) follows
+the layout:
 
 ```
-<case>/
-├── setup/        OpenFOAM input deck (0, constant, system, chemkin)
-├── runScripts/   Allrun_automated and monitor scripts
-├── postProcessing/   Curated lightweight figures, tables and ParaView assets
-└── README.md
+<group>/
+├── postProcessing/   Cross-bandwidth comparison: figures/, tables/,
+│                     paraview/, scripts/, README.md
+├── b_0_PCM/
+│   ├── setup/
+│   ├── runScripts/
+│   ├── postProcessing/   Per-case: figures/, tables/, paraview/,
+│   │                     scripts/, README.md
+│   └── README.md
+├── b_Dinj/   (same layout)
+├── b_3Dinj/  (same layout)
+└── b_6Dinj/  (same layout)
 ```
 
-The `postProcessing/` subfolder, when present, holds only curated lightweight
-assets (final plots, processed CSV/JSON summaries, ParaView colormaps and
-state files); raw OpenFOAM runtime outputs remain excluded.
+The `postProcessing/` subfolders, at both group level and per-case level,
+hold only curated lightweight assets — final plots (PNG), processed CSV/JSON
+summaries, ParaView colormaps/state files/screenshots and the Python
+post-processing scripts that produced them. Raw OpenFOAM runtime outputs
+remain excluded.
 
 The DBM bandwidth is configured per-case in `constant/smoothingProperties`
 through the parameter `smoothBandwidth`. The four bandwidth variants used

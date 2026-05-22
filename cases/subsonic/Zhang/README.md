@@ -26,21 +26,36 @@ function-object outputs, parcel-level CSV dumps and run logs are intentionally
 excluded; the solver fields must be regenerated locally or on the cluster from
 the provided setup using the `runScripts/Allrun_automated` workflow.
 
-Each case folder follows the layout:
+The folder layout is:
 
 ```
-<We>/<band>/
-├── setup/        OpenFOAM input deck (0, constant, system, chemkin)
-├── runScripts/   Allrun_automated and monitor scripts
-├── postProcessing/   Curated lightweight figures, tables and ParaView assets
-└── README.md
+<We>/
+├── postProcessing/        Cross-bandwidth (kernel) comparison assets for this We
+│   ├── figures/            Combined / pair / single-location comparison plots
+│   ├── tables/             Kernel-comparison summary + reference profiles
+│   ├── paraview/           Placeholder for ParaView assets
+│   ├── scripts/            Python scripts used for the comparison
+│   └── README.md
+├── b_0_PCM/
+│   ├── setup/              OpenFOAM input deck (0, constant, system, chemkin)
+│   ├── runScripts/         Allrun_automated and monitor scripts
+│   ├── postProcessing/     Curated per-case figures, tables, ParaView assets
+│   │   ├── figures/
+│   │   ├── tables/
+│   │   ├── paraview/
+│   │   ├── scripts/
+│   │   └── README.md
+│   └── README.md
+├── b_Dinj/   (same layout)
+├── b_3Dinj/  (same layout)
+└── b_6Dinj/  (same layout)
 ```
 
-The `postProcessing/` subfolder is reserved for curated outputs only — final
-plots (PNG), lightweight processed summaries (CSV, JSON) and ParaView
-colormaps/state files/screenshots. Raw OpenFOAM runtime outputs remain
-excluded. See each `<band>/postProcessing/README.md` for the per-case
-inventory.
+The `postProcessing/` subfolders are reserved for curated outputs only — final
+plots (PNG), lightweight processed summaries (CSV, JSON), ParaView
+colormaps/state files/screenshots and the Python scripts that produced them.
+Raw OpenFOAM runtime outputs remain excluded. See each `postProcessing/README.md`
+for the per-case and per-group inventories.
 
 See the parent `cases/subsonic/Zhang_case/` for the original LMR = 1
 validation case from which the kernel study was derived.

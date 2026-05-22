@@ -1,0 +1,5 @@
+case,label,smoothBandwidth_m,smoothBandwidth_mm,b_over_Dinj,SMD_global_um,valid_bins,RMSE_D32_vs_We500_um
+b_0_PCM,PCM (cellPoint), b = 0,0.0,0.0,0.0,358.81,8,72.59
+b_Dinj,DBM, $b = D_{inj}$,0.0016,1.6,1.0,351.02,9,63.47
+b_3Dinj,DBM, $b = 3D_{inj}$,0.0048000000000000004,4.800000000000001,3.0,318.89,10,49.93
+b_6Dinj,DBM, $b = 6D_{inj}$,0.009600000000000001,9.600000000000001,6.0,302.94,11,38.21

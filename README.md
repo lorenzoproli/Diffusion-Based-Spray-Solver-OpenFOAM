@@ -153,11 +153,16 @@ For each imported case the following are tracked:
   required by the case;
 - `runScripts/` – `Allrun_automated` and `monitor_*` helpers used for cluster
   execution;
-- `postProcessing/` – when present, holds **only** curated lightweight assets
-  for the case (final figures in `figures/`, processed CSV/JSON summaries in
-  `tables/`, and ParaView colormaps/state files/screenshots in `paraview/`).
-  Raw OpenFOAM runtime outputs (numeric time directories, function-object
-  outputs, processor folders, parcel-level CSV dumps, logs) are excluded.
+- `postProcessing/` – when present, holds **only** curated lightweight assets.
+  Each kernel-study group additionally carries a group-level
+  `postProcessing/` folder with cross-bandwidth comparison assets (combined
+  multi-panel plot, per-variable comparisons across axial locations and
+  single-location comparisons). Both group-level and per-case folders use
+  the layout `figures/`, `tables/`, `paraview/`, `scripts/`, with `scripts/`
+  containing the Python post-processing scripts that produced the curated
+  outputs. Raw OpenFOAM runtime outputs (numeric time directories,
+  function-object outputs, processor folders, parcel-level CSV dumps, logs)
+  are excluded.
 
 The `polyMesh/` directory is regenerated locally via `blockMesh` (plus any
 case-specific topology utilities referenced in `system/`) as part of the

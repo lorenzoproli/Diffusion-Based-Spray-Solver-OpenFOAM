@@ -1,12 +1,13 @@
 # Zhang – We500 – b_0_PCM – postProcessing
 
-This folder contains curated lightweight post-processing assets for this specific case. Raw OpenFOAM outputs (numeric time directories, processor decomposition, function-object outputs, parcel-level CSV dumps, logs) are intentionally excluded; only final figures, lightweight processed tables and ParaView visualization assets are tracked here.
+This folder contains curated lightweight post-processing assets for this specific case. Raw OpenFOAM outputs (numeric time directories, processor decomposition, function-object outputs, parcel-level CSV dumps, logs) are intentionally excluded; only final figures, lightweight processed tables, ParaView visualization assets and the post-processing scripts that produced them are tracked here.
 
 ## Structure
 
 - `figures/` – final post-processing plots (PNG).
 - `tables/` – lightweight processed summaries (CSV, JSON).
 - `paraview/` – ParaView colormaps, state files, presets and screenshots.
+- `scripts/` – Python scripts used to generate the curated outputs.
 
 ## figures/
 
@@ -23,3 +24,8 @@ This folder contains curated lightweight post-processing assets for this specifi
 ## paraview/
 
 _Reserved for ParaView colormaps, state files (`.pvsm`), presets and screenshots to be added later._
+
+## scripts/
+
+- `calcolo_D32.py`
+- `postprocess_zhang_kernel_single.py`
