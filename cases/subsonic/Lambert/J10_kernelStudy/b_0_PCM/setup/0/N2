@@ -1,0 +1,59 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      N2;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+// inertSpecie: Y_N2 = 1 - Y_O2 - Y_H2O = 1 - 0.233 = 0.767 (dry air)
+internalField   uniform 0.767;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 0.767;
+    }
+
+    outletRight
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.767;
+        value           uniform 0.767;
+    }
+
+    wallTop
+    {
+        type            zeroGradient;
+    }
+
+    wallBottom
+    {
+        type            zeroGradient;
+    }
+
+    front
+    {
+        type            symmetry;
+    }
+
+    back
+    {
+        type            symmetry;
+    }
+}
+
+// ************************************************************************* //

@@ -1,0 +1,49 @@
+#!/bin/bash
+set -euo pipefail
+
+NP=${SLURM_NTASKS:-48}
+
+echo "============================================================"
+echo "Allrun_automated"
+echo "Case: $(pwd)"
+echo "NP: ${NP}"
+echo "Started: $(date)"
+echo "============================================================"
+
+echo "=== CLEAN OLD RUN ARTIFACTS ==="
+rm -rf processor*
+rm -f log.potentialFoam log.decomposePar log.sprayFoamDBM log.reconstructPar
+rm -rf 0.[0-9]* [1-9]*
+
+echo "=== RESTORE INITIAL VELOCITY FIELD ==="
+if [ ! -f U_backup/U ]; then
+    echo "ERROR: missing U_backup/U"
+    exit 1
+fi
+
+if [ ! -d 0 ]; then
+    echo "ERROR: missing 0 directory"
+    exit 1
+fi
+
+cp U_backup/U 0/U
+
+if [ ! -f 0/p ]; then
+    echo "ERROR: missing 0/p"
+    ls -lh 0
+    exit 1
+fi
+
+echo "=== potentialFoam RUN ==="
+potentialFoam -noFunctionObjects > log.potentialFoam 2>&1
+
+echo "=== decomposePar RUN ==="
+decomposePar -force > log.decomposePar 2>&1
+
+echo "=== sprayFoamDBM RUN ==="
+mpirun -np ${NP} sprayFoamDBM -parallel > log.sprayFoamDBM 2>&1
+
+echo "============================================================"
+echo "Allrun_automated completed successfully"
+echo "Finished: $(date)"
+echo "============================================================"

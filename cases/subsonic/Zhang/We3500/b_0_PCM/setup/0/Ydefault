@@ -1,0 +1,73 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      Ydefault;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Frazione massica default per specie non esplicitamente definite
+// Tipicamente usato da sprayFoam per il vapore del liquido iniettato
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    gasInlet
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+
+    outletRight
+    {
+        type            inletOutlet;
+        inletValue      uniform 0;
+        value           uniform 0;
+    }
+
+    outletTop
+    {
+        type            inletOutlet;
+        inletValue      uniform 0;
+        value           uniform 0;
+    }
+
+    bottomWall
+    {
+        type            zeroGradient;
+    }
+
+    filmTopWall
+    {
+        type            zeroGradient;
+    }
+
+    stepWall
+    {
+        type            zeroGradient;
+    }
+
+    front
+    {
+        type            symmetryPlane;
+    }
+
+    back
+    {
+        type            symmetryPlane;
+    }
+}
+
+// ************************************************************************* //

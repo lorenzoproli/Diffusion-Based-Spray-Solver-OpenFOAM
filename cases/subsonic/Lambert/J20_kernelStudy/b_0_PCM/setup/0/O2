@@ -1,0 +1,63 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      O2;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+//
+// Aria secca: Y_O2 = 0.233 (23.3% massa)
+// Y_N2 = 0.767 (inertSpecie, calcolato come 1 - Y_O2 - Y_H2O)
+// M_mix = 1/(0.767/28.014 + 0.233/32.0) = 28.84 g/mol  (vs. aria 28.97)
+//
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0.233;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 0.233;
+    }
+
+    outletRight
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.233;
+        value           uniform 0.233;
+    }
+
+    wallTop
+    {
+        type            zeroGradient;
+    }
+
+    wallBottom
+    {
+        type            zeroGradient;
+    }
+
+    front
+    {
+        type            symmetry;
+    }
+
+    back
+    {
+        type            symmetry;
+    }
+}
+
+// ************************************************************************* //

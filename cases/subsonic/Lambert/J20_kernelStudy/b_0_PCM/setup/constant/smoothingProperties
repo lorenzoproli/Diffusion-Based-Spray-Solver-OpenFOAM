@@ -1,0 +1,14 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      smoothingProperties;
+}
+
+// DBM kernel sensitivity — PCM reference (cell interpolation)
+// Dinj = 4.57e-4 m
+// b = 0
+// sigma^2 = 0
+smoothBandwidth   0;

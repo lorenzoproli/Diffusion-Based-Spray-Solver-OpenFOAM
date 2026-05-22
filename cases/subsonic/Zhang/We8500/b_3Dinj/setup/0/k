@@ -1,0 +1,62 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      k;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// k = 1.5*(U_inf * Tu)^2 con Tu = 5%
+// k = 1.5*(62.5*0.05)^2 = 1.5*9.765 ≈ 14.6 m^2/s^2
+
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform 14.6;
+
+boundaryField
+{
+    gasInlet
+    {
+        type            fixedValue;
+        value           uniform 14.6;
+    }
+
+    outletRight
+    {
+        type            inletOutlet;
+        inletValue      uniform 14.6;
+        value           uniform 14.6;
+    }
+
+    outletTop
+    {
+        type            inletOutlet;
+        inletValue      uniform 14.6;
+        value           uniform 14.6;
+    }
+
+    bottomWall  { type kqRWallFunction; value uniform 0; }
+    filmTopWall { type kqRWallFunction; value uniform 0; }
+    stepWall    { type kqRWallFunction; value uniform 0; }
+
+    front
+    {
+        type            symmetryPlane;
+    }
+
+    back
+    {
+        type            symmetryPlane;
+    }
+}
+
+// ************************************************************************* //

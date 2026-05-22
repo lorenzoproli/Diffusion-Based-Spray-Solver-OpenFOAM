@@ -1,0 +1,61 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+//
+// Lambert (ILASS 2019): T_gas = 300 K
+//
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   uniform 300;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 300;
+    }
+
+    outletRight
+    {
+        type            inletOutlet;
+        inletValue      uniform 300;
+        value           uniform 300;
+    }
+
+    wallTop
+    {
+        type            zeroGradient;
+    }
+
+    wallBottom
+    {
+        type            zeroGradient;
+    }
+
+    front
+    {
+        type            symmetry;
+    }
+
+    back
+    {
+        type            symmetry;
+    }
+}
+
+// ************************************************************************* //

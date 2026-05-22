@@ -1,0 +1,14 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      smoothingProperties;
+}
+
+// DBM kernel sensitivity
+// Dinj = 4.57e-4 m
+// b = 6 × Dinj = 6 × 4.57e-4 = 2.742e-3 m
+// sigma^2 = b^2/4 = (2.742e-3)^2/4 ≈ 1.880e-6 m2
+smoothBandwidth   0.002742;

@@ -1,0 +1,51 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2406                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+//
+// faceZones for Lambert (2019) DPM-style sampling planes.
+//
+// Block-3 (downstream, x in [0.0275, 0.06858], simpleGrading 3.0, 60 cells)
+// gives the following internal face planes near the targets:
+//   x/d=30  ->  closest face plane at x = 0.033937 m (spacing here ~0.50 mm)
+//   x/d=60  ->  closest face plane at x = 0.047310 m (spacing here ~0.75 mm)
+//
+// Boxes centred on the actual face planes, with half-thickness ~ 0.4 * spacing
+// so that EXACTLY ONE face layer is captured per faceZone.
+// Cross-section spans full domain in y and z.
+//
+
+actions
+(
+    {
+        name    plane_30d;
+        type    faceZoneSet;
+        action  new;
+        source  boxToFace;
+        // x = 0.033937 ± 0.10 mm  -> single layer, |dx_layer| < 0.5*spacing
+        box     (0.033837 0.0 -0.025) (0.034037 0.05 0.025);
+    }
+
+    {
+        name    plane_60d;
+        type    faceZoneSet;
+        action  new;
+        source  boxToFace;
+        // x = 0.047310 ± 0.15 mm  -> single layer (spacing ~0.75 mm)
+        box     (0.047160 0.0 -0.025) (0.047460 0.05 0.025);
+    }
+);
+
+
+// ************************************************************************* //

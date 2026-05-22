@@ -98,16 +98,23 @@ Thesis-Lagrangian-Solver/
 │
 ├── cases/
 │   ├── subsonic/
-│   │   ├── Zhang_case/                  # Subsonic crossflow validation case
-│   │   │   ├── setup/                   # OpenFOAM setup files
-│   │   │   ├── runScripts/              # Run and monitoring scripts
-│   │   │   └── results/                 # Optional lightweight reference outputs
+│   │   ├── Zhang_case/                  # Original Zhang subsonic validation case (LMR = 1)
+│   │   ├── Zhang/                       # Zhang DBM kernel study (setup-only)
+│   │   │   ├── We500/
+│   │   │   │   ├── b_0_PCM/             # PCM reference (smoothBandwidth = 0)
+│   │   │   │   ├── b_Dinj/              # DBM, b = 1 D_inj
+│   │   │   │   ├── b_3Dinj/             # DBM, b = 3 D_inj
+│   │   │   │   └── b_6Dinj/             # DBM, b = 6 D_inj
+│   │   │   ├── We3500/                  # same four bandwidths
+│   │   │   └── We8500/                  # same four bandwidths
 │   │   │
 │   │   └── Lambert/
 │   │       ├── J10/                     # Lambert momentum-ratio J=10 case
 │   │       ├── J20/                     # Lambert momentum-ratio J=20 case
 │   │       ├── J10_Ligament/            # J10 with updated ligament-aware libraries
-│   │       └── J20_Ligament/            # J20 with updated ligament-aware libraries
+│   │       ├── J20_Ligament/            # J20 with updated ligament-aware libraries
+│   │       ├── J10_kernelStudy/         # Lambert DBM kernel study at J = 10
+│   │       └── J20_kernelStudy/         # Lambert DBM kernel study at J = 20
 │   │
 │   ├── supersonic/
 │   └── evaporation/
@@ -125,6 +132,75 @@ Thesis-Lagrangian-Solver/
 │
 └── README.md
 ```
+
+---
+
+## Validation cases
+
+The `cases/` directory provides reproducible **setup-only** OpenFOAM cases for
+the subsonic-crossflow validation and the Diffusion-Based smoothing kernel
+study. The repository deliberately does **not** track simulation results,
+processor decomposition, `postProcessing` outputs or run logs: only the clean
+setup needed to rerun the cases is committed.
+
+For each imported case the following are tracked:
+
+- `setup/0/` – initial and boundary conditions (with the original `U` field
+  restored from the source case's `U_backup/` before any overwrite by
+  `potentialFoam`);
+- `setup/constant/` – thermophysical properties, spray cloud setup, gravity,
+  turbulence, radiation and the `smoothingProperties` dictionary controlling
+  the DBM bandwidth;
+- `setup/system/` – `controlDict`, `fvSchemes`, `fvSolution`, `blockMeshDict`
+  and the other case-level dictionaries;
+- `setup/chemkin/` – CHEMKIN-format thermodynamic and transport data, when
+  required by the case;
+- `runScripts/` – `Allrun_automated` and `monitor_*` helpers used for cluster
+  execution.
+
+The `polyMesh/` directory is regenerated locally via `blockMesh` (plus any
+case-specific topology utilities referenced in `system/`) as part of the
+`Allrun_automated` workflow; it is not committed in the kernel-study cases.
+
+### Subsonic kernel-study cases
+
+The `cases/subsonic/Zhang/` and `cases/subsonic/Lambert/{J10,J20}_kernelStudy/`
+folders contain the OpenFOAM setups used for the parametric study of the
+Diffusion-Based smoothing bandwidth `b`. Each kernel-study group shares the
+same physical configuration and differs only in the value of
+`smoothBandwidth` in `constant/smoothingProperties`:
+
+| Case label | `smoothBandwidth` | Meaning                          |
+|------------|-------------------|----------------------------------|
+| `b_0_PCM`  | `0`               | PCM reference, no DBM smoothing  |
+| `b_Dinj`   | `1 × D_inj`       | DBM smoothing at one D_inj       |
+| `b_3Dinj`  | `3 × D_inj`       | DBM smoothing at three D_inj     |
+| `b_6Dinj`  | `6 × D_inj`       | DBM smoothing at six D_inj       |
+
+For the Zhang configuration the injector diameter is `D_inj = 1.6 mm`, so the
+recorded values are `0`, `0.0016`, `0.0048` and `0.0096` metres. For the
+Lambert configuration the injector diameter gives `0`, `0.000457`, `0.001371`
+and `0.002742` metres. The Lambert `b_0_PCM` folder corresponds to the source
+case named `b_0_PCM_cell` in the kernel-study run directory and provides the
+PCM baseline used for the kernel comparison.
+
+Results for these cases are intentionally excluded from the repository and
+should be obtained externally or regenerated from the provided setup.
+
+### Custom libraries used by the cases
+
+All validation cases rely on the updated custom libraries in `src/`:
+
+- `src/breakup/Madabhushi/` – Madabhushi + Lambert multi-stage breakup model;
+- `src/drag/Madabhushi/` – `MadabhushiDragForce` drag model with sphere/disc
+  deformation correction;
+- `src/sprayParcel/` – modified `SprayParcel.C` and `BreakupModel.H` providing
+  parent/child state handling for the ligament mechanism;
+- `src/sampling/ParcelPlaneSampler/` – crossing-plane parcel sampler used by
+  the post-processing pipeline;
+- `src/sprayFoamDBM/` – custom solver implementing the Diffusion-Based
+  smoothing of the Lagrangian source terms, controlled per-case via
+  `constant/smoothingProperties`.
 
 ---
 

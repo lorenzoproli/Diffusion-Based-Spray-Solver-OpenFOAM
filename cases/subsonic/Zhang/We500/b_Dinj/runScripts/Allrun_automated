@@ -1,0 +1,27 @@
+#!/bin/bash
+set -euo pipefail
+
+NP=${SLURM_NTASKS:-48}
+
+log() { echo "[$(date '+%H:%M:%S')] $*"; }
+
+log "=== Clean ==="
+rm -rf processor*
+rm -f log.*
+
+log "=== restore U from U_backup ==="
+cp U_backup/U 0/U
+
+log "=== potentialFoam ==="
+potentialFoam -noFunctionObjects > log.potentialFoam 2>&1
+
+log "=== decomposePar ==="
+decomposePar -force > log.decomposePar 2>&1
+
+log "=== sprayFoamDBM RUN (NP=$NP) ==="
+mpirun -np $NP sprayFoamDBM -parallel > log.sprayFoamDBM 2>&1
+
+log "=== reconstructPar ==="
+reconstructPar > log.reconstructPar 2>&1
+
+log "=== DONE ==="
