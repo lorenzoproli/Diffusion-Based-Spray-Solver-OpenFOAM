@@ -37,6 +37,12 @@ forces/
 probes/
 surfaces/
 
+# Allow curated case-local postProcessing assets (figures, tables, paraview)
+# under cases/**/postProcessing/. Heavy generated outputs are still excluded
+# below via the explicit *.vtk, *.vtu, *.foam, *.dat, *.raw, log.* rules.
+!cases/**/postProcessing/
+!cases/**/postProcessing/**
+
 # Reconstruction / sampling
 sets/
 surfaces/

@@ -152,11 +152,20 @@ For each imported case the following are tracked:
 - `setup/chemkin/` – CHEMKIN-format thermodynamic and transport data, when
   required by the case;
 - `runScripts/` – `Allrun_automated` and `monitor_*` helpers used for cluster
-  execution.
+  execution;
+- `postProcessing/` – when present, holds **only** curated lightweight assets
+  for the case (final figures in `figures/`, processed CSV/JSON summaries in
+  `tables/`, and ParaView colormaps/state files/screenshots in `paraview/`).
+  Raw OpenFOAM runtime outputs (numeric time directories, function-object
+  outputs, processor folders, parcel-level CSV dumps, logs) are excluded.
 
 The `polyMesh/` directory is regenerated locally via `blockMesh` (plus any
 case-specific topology utilities referenced in `system/`) as part of the
 `Allrun_automated` workflow; it is not committed in the kernel-study cases.
+
+The top-level `postProcessing/` directory at the repository root collects
+reusable post-processing scripts and shared assets; case-specific curated
+figures and tables live in each `cases/**/postProcessing/` folder.
 
 ### Subsonic kernel-study cases
 

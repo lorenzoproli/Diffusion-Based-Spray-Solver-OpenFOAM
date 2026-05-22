@@ -33,8 +33,24 @@ The `b_0_PCM` folder is the normalized in-repository name of the PCM/cellPoint
 source case and provides the PCM baseline against which the DBM bandwidths are
 compared.
 
-All cases are setup-only. Time directories, processor decomposition,
-`postProcessing` outputs and run logs are intentionally excluded; the
-`polyMesh/` directory is regenerated locally through `blockMesh` (plus any
-case-specific topology utilities) via the `Allrun_automated` workflow under
-`runScripts/`.
+All cases are setup-only. Numeric time directories, processor decomposition,
+function-object outputs, parcel-level CSV dumps and run logs are intentionally
+excluded; the `polyMesh/` directory is regenerated locally through `blockMesh`
+(plus any case-specific topology utilities) via the `Allrun_automated` workflow
+under `runScripts/`.
+
+Each case folder follows the layout:
+
+```
+<J*_kernelStudy>/<band>/
+├── setup/        OpenFOAM input deck (0, constant, system, chemkin)
+├── runScripts/   Allrun_automated and monitor scripts
+├── postProcessing/   Curated lightweight figures, tables and ParaView assets
+└── README.md
+```
+
+The `postProcessing/` subfolder is reserved for curated outputs only — final
+plots (PNG), lightweight processed summaries (CSV, JSON) and ParaView
+colormaps/state files/screenshots. Raw OpenFOAM runtime outputs remain
+excluded. See each `<band>/postProcessing/README.md` for the per-case
+inventory.

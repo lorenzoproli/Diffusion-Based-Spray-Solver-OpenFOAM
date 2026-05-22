@@ -22,12 +22,26 @@ subsonic/
 ```
 
 All cases under this directory are **setup-only**. Numeric time directories,
-processor folders, `postProcessing` outputs, log files and other heavy
-runtime artefacts are intentionally excluded; results must be regenerated
+processor folders, function-object outputs, log files and other heavy runtime
+artefacts are intentionally excluded; the solver fields must be regenerated
 locally or on the cluster from the provided setup. The `polyMesh/` directory
 is regenerated through `blockMesh` (plus any case-specific topology utilities
 referenced in `system/`) as part of the `Allrun_automated` workflow stored
 under each case's `runScripts/`.
+
+Each kernel-study case follows the layout:
+
+```
+<case>/
+├── setup/        OpenFOAM input deck (0, constant, system, chemkin)
+├── runScripts/   Allrun_automated and monitor scripts
+├── postProcessing/   Curated lightweight figures, tables and ParaView assets
+└── README.md
+```
+
+The `postProcessing/` subfolder, when present, holds only curated lightweight
+assets (final plots, processed CSV/JSON summaries, ParaView colormaps and
+state files); raw OpenFOAM runtime outputs remain excluded.
 
 The DBM bandwidth is configured per-case in `constant/smoothingProperties`
 through the parameter `smoothBandwidth`. The four bandwidth variants used

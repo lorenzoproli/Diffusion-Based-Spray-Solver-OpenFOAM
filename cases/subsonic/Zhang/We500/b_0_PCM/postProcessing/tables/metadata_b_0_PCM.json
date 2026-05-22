@@ -1,0 +1,53 @@
+{
+  "case_dir": "/home/lorenzo/runs/subsonic/Zhang_cases_cluster/We500/b_0_PCM",
+  "case_label": "b_0_PCM",
+  "weg_ref": "We500",
+  "cloud": "sprayCloud",
+  "x_jet_m": 0.015,
+  "x_offsets_m": [
+    0.06
+  ],
+  "slice_half_thickness_m": 0.0005,
+  "min_droplets_per_bin": 10.0,
+  "times_used": [
+    "0.02",
+    "0.0205",
+    "0.021",
+    "0.0215",
+    "0.022",
+    "0.0225",
+    "0.023",
+    "0.0235",
+    "0.024",
+    "0.0245",
+    "0.025",
+    "0.0255",
+    "0.026",
+    "0.0265",
+    "0.027",
+    "0.0275",
+    "0.028",
+    "0.0285",
+    "0.029",
+    "0.0295",
+    "0.03"
+  ],
+  "z_bins": [
+    0.0,
+    0.005,
+    0.01,
+    0.015,
+    0.02,
+    0.025,
+    0.03,
+    0.035,
+    0.04,
+    0.045,
+    0.05,
+    0.055,
+    0.06,
+    0.065
+  ],
+  "weighting": "nParticle (snapshot, no flux)",
+  "SMD_global_um_x060mm": 358.81
+}
