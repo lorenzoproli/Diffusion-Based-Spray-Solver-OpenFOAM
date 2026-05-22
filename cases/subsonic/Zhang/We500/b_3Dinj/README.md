@@ -8,15 +8,6 @@ Subsonic crossflow validation case from the Zhang configuration (We500), used as
 - `constant/smoothingProperties` → `smoothBandwidth = 0.0048` [m]
 - Interpretation: Diffusion-Based smoothing with bandwidth equal to three injector diameters
 
-## Source folder
-
-Imported from:
-
-`~/runs/subsonic/Zhang_cases_cluster/We500/b_3Dinj`
-
-The original time directories, processor decomposition, `postProcessing` outputs
-and run logs are intentionally excluded. Only the clean setup needed to rerun
-the case is retained.
 
 ## Folder structure
 

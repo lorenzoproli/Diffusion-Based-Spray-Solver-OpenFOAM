@@ -35,7 +35,7 @@ Purpose: improve accuracy once the flow is sufficiently developed.
 Notes:
 - Start of Injection (SOI) is relative to Phase 2 start time
 - Injection ends at `t = 0.0295 s`
-- Uses Madabhushi breakup and Lambert drag models
+- Uses the Madabhushi + Lambert breakup model and the MadabhushiDragForce drag model
 
 ---
 

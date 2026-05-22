@@ -1,6 +1,6 @@
 # Lambert – J10_kernelStudy – b_0_PCM
 
-Lambert (ILASS 2019) reference case with momentum ratio J10, used as a kernel-study point for the Diffusion-Based smoothing of the Lagrangian source terms.
+Lambert (ILASS 2019) reference case with momentum ratio J = 10, used as a kernel-study point for the Diffusion-Based smoothing of the Lagrangian source terms.
 
 ## Kernel setting
 
@@ -8,15 +8,6 @@ Lambert (ILASS 2019) reference case with momentum ratio J10, used as a kernel-st
 - `constant/smoothingProperties` → `smoothBandwidth = 0` [m]
 - Interpretation: PCM reference (no DBM smoothing; cellPoint projection)
 
-## Source folder
-
-Imported from:
-
-`~/runs/subsonic/Lambert_case_J10_kernelStudy_cluster/b_0_PCM_cell`
-
-The original time directories, processor decomposition, `postProcessing` outputs
-and run logs are intentionally excluded. Only the clean setup needed to rerun
-the case is retained.
 
 ## Folder structure
 

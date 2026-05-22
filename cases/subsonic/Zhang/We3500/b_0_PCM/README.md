@@ -8,15 +8,6 @@ Subsonic crossflow validation case from the Zhang configuration (We3500), used a
 - `constant/smoothingProperties` → `smoothBandwidth = 0` [m]
 - Interpretation: PCM reference (no DBM smoothing; cellPoint projection)
 
-## Source folder
-
-Imported from:
-
-`~/runs/subsonic/Zhang_cases_cluster/We3500/b_0_PCM`
-
-The original time directories, processor decomposition, `postProcessing` outputs
-and run logs are intentionally excluded. Only the clean setup needed to rerun
-the case is retained.
 
 ## Folder structure
 

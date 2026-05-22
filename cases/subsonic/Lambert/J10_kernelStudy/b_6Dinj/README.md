@@ -1,6 +1,6 @@
 # Lambert – J10_kernelStudy – b_6Dinj
 
-Lambert (ILASS 2019) reference case with momentum ratio J10, used as a kernel-study point for the Diffusion-Based smoothing of the Lagrangian source terms.
+Lambert (ILASS 2019) reference case with momentum ratio J = 10, used as a kernel-study point for the Diffusion-Based smoothing of the Lagrangian source terms.
 
 ## Kernel setting
 
@@ -8,15 +8,6 @@ Lambert (ILASS 2019) reference case with momentum ratio J10, used as a kernel-st
 - `constant/smoothingProperties` → `smoothBandwidth = 0.002742` [m]
 - Interpretation: Diffusion-Based smoothing with bandwidth equal to six injector diameters
 
-## Source folder
-
-Imported from:
-
-`~/runs/subsonic/Lambert_case_J10_kernelStudy_cluster/b_6Dinj`
-
-The original time directories, processor decomposition, `postProcessing` outputs
-and run logs are intentionally excluded. Only the clean setup needed to rerun
-the case is retained.
 
 ## Folder structure
 
