@@ -38,12 +38,22 @@ The drag coefficient is computed using a multi-regime formulation depending on t
 - Accounts for increased drag due to droplet deformation
 - Ensures consistency with the breakup dynamics
 
-## Key parameters
+## Dictionary coefficients
 
-- `CdBlob`: drag coefficient for liquid column / blob regime
-- `CdDisc`: drag coefficient for deformed droplets
-- `UgRef`: reference gas velocity for deformation scaling
-- `Dinj`: injector diameter
+The following parameters are read from `MadabhushiDragForce` (or `MadabhushiLigamentDragForce`) in `constant/sprayCloudProperties`:
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `CdBlob` | 1.48 | Drag coefficient for liquid column / blob regime |
+| `C0` | 3.44 | Column breakup constant (shared with breakup model) |
+| `Dinj` | 0.0016 | Injector diameter [m] |
+| `debug` | false | Enable CSV debug logging |
+
+The following parameter is **hardcoded** in the source and is **not** read from the dictionary:
+
+| Parameter | Fixed value | Description |
+|-----------|-------------|-------------|
+| `CdDisc` | 1.2 | Drag coefficient for deformed droplets (Madabhushi 2003 Eq. 7) |
 
 ## Implementation features
 

@@ -152,7 +152,7 @@ Foam::MadabhushiDragForce<CloudType>::MadabhushiDragForce
 :
     ParticleForce<CloudType>(owner, mesh, dict, typeName, true),
     CdBlob_(this->coeffs().getOrDefault("CdBlob", 1.48)),
-    CdDisc_(this->coeffs().getOrDefault("CdDisc", 1.2)),
+    CdDisc_(1.2),
     C0_(this->coeffs().getOrDefault("C0", 3.44)),
     Dinj_(this->coeffs().getOrDefault("Dinj", 0.0016)),
     debug_(this->coeffs().getOrDefault("debug", false))

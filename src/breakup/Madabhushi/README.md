@@ -69,6 +69,26 @@ This effectively defines a state-machine governing the evolution of each parcel.
 - `makeMadabhushiBreakup.C`: runtime selection registration
 - `Make/files`, `Make/options`: compilation settings
 
+## Dictionary coefficients
+
+The following parameters are read from `MadabhushiCoeffs` (or `MadabhushiLigamentCoeffs`) in `constant/sprayCloudProperties`:
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `C0` | 3.44 | Column breakup time constant (Lambert 2019 Eq. 1) |
+| `FLig` | 0.4 | Ligament weighting factor (Lambert 2019 Eq. 11) |
+| `b0` | 0.61 | Reitz Wave model constant B0 |
+| `b1` | 10.0 | Reitz Wave model constant B1 |
+| `Dinj` | 0.0016 | Injector diameter [m] |
+| `debug` | false | Enable CSV debug logging |
+
+The following parameters are **hardcoded** in the source and are **not** read from the dictionary:
+
+| Parameter | Fixed value | Description |
+|-----------|-------------|-------------|
+| `nChildren` | 5 | Number of child parcels at catastrophic breakup |
+| `minChildDiameter` | 1e-7 m | Numerical lower bound for sampled child diameters |
+
 ## Role in the thesis
 
 This model is a core component of the thesis solver and is used to:
