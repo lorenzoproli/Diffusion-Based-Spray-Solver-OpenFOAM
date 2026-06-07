@@ -1,4 +1,4 @@
-# A Diffusion-Based Lagrangian Spray Solver for Liquid Jet Atomization in Subsonic Crossflow
+# A Diffusion-Based Lagrangian Spray Solver in OpenFOAM for Liquid Jet Atomization in Subsonic Crossflow
 
 *Custom OpenFOAM breakup, drag and Lagrangian source-term smoothing (DBM) models for spray atomization, validated against the Zhang (LJIGF) and Lambert (LJICF) reference cases.*
 
