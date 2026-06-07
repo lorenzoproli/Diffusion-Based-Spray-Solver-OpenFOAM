@@ -1,6 +1,6 @@
 # Zhang – We8500 – b_Dinj
 
-Subsonic crossflow validation case from the Zhang configuration (We8500), used as a kernel-study point for the Diffusion-Based smoothing of the Lagrangian source terms.
+Subsonic crossflow validation case from the Zhang configuration (We8500), used as a kernel-study point for the Diffusion-Based smoothing of the Lagrangian source terms. **Note:** the `We8500` simulations did not converge — the case crashed before producing validated results (the DBM smoothing is applied only to the momentum source, while the energy/mass sources dominate at this very high Weber number). The setup is provided as a reference only; see [`../README.md`](../README.md).
 
 ## Kernel setting
 

@@ -12,8 +12,14 @@ Zhang/
 │   ├── b_3Dinj/   smoothBandwidth = 3 × D_inj
 │   └── b_6Dinj/   smoothBandwidth = 6 × D_inj
 ├── We3500/        (same four bandwidths)
-└── We8500/        (same four bandwidths)
+└── We8500/        (same four bandwidths — did NOT converge, crashed; see We8500/README.md)
 ```
+
+> **Note on `We8500`.** The most energetic Zhang condition (`We8500`) did not
+> reach convergence and is reported as setup-only, without validated results: the
+> DBM smoothing is currently applied only to the momentum source, while at this
+> Weber number the energy/mass exchange source terms dominate the coupling and
+> need to be smoothed as well (future work). See `We8500/README.md` for details.
 
 The injector diameter for these cases is `D_inj = 1.6 mm`, so:
 

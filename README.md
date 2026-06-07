@@ -1,4 +1,6 @@
-# Thesis Lagrangian Spray Solver – Crossflow Atomization
+# A Diffusion-Based Lagrangian Spray Solver for Liquid Jet Atomization in Subsonic Crossflow
+
+*Custom OpenFOAM breakup, drag and Lagrangian source-term smoothing (DBM) models for spray atomization, validated against the Zhang (LJIGF) and Lambert (LJICF) reference cases.*
 
 This repository contains the development and validation of a custom Lagrangian spray solver based on OpenFOAM, carried out within a Master's thesis in Aerospace Engineering at Politecnico di Torino.
 
@@ -105,7 +107,7 @@ Thesis-Lagrangian-Solver/
 │   │   │   │   ├── b_3Dinj/             # DBM, b = 3 D_inj
 │   │   │   │   └── b_6Dinj/             # DBM, b = 6 D_inj
 │   │   │   ├── We3500/                  # same four bandwidths
-│   │   │   └── We8500/                  # same four bandwidths
+│   │   │   └── We8500/                  # same four bandwidths (did not converge — setup-only)
 │   │   │
 │   │   └── Lambert/
 │   │       ├── J10_kernelStudy/         # Lambert DBM kernel study at J = 10
