@@ -23,11 +23,10 @@ This folder contains curated lightweight post-processing assets for this specifi
 
 ## paraview/
 
-- `Zhang_We500_b_3Dinj_diameter.png`
-- `Zhang_We500_b_3Dinj_pressure.png`
-- `Zhang_We500_b_3Dinj_velocity.png`
-- `Zhang_We500_b_3Dinj_velocity_magnitude.png`
-- `Zhang_We500_b_3Dinj_weber.png`
+- `We_500_U_3Dinj.png`
+- `We_500_Up_3Dinj.png`
+- `We_500_d_3Dinj.png`
+- `We_500_p_3Dinj.png`
 
 ## scripts/
 

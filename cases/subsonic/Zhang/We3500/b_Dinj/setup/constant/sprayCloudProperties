@@ -82,7 +82,6 @@ subModels
         MadabhushiDragForce
         {
             CdBlob  2.16;
-            CdDisc  1.2;
             C0      0.46;
             Dinj    0.0016;
             debug   false;
@@ -160,12 +159,10 @@ subModels
     MadabhushiCoeffs
     {
         C0       0.46;     // user override
-        FLig     0.4;      // user override
+        FLig     1;      // user override
         b0       2.44;     // user override
         b1       1.73;     // user override
-        CdBlob   2.16;     // user override
         Dinj     0.0016;
-        nChildren 5;        // Madabhushi (2003): five smaller droplet parcels
         debug   false;
     }
 

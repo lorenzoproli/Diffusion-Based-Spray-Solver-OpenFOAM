@@ -98,7 +98,6 @@ Thesis-Lagrangian-Solver/
 │
 ├── cases/
 │   ├── subsonic/
-│   │   ├── Zhang_case/                  # Original Zhang subsonic validation case (LMR = 1)
 │   │   ├── Zhang/                       # Zhang DBM kernel study (setup-only)
 │   │   │   ├── We500/
 │   │   │   │   ├── b_0_PCM/             # PCM reference (smoothBandwidth = 0)

@@ -89,7 +89,6 @@ subModels
         MadabhushiDragForce
         {
             CdBlob  1.48;
-            CdDisc  1.2;
             C0      3.44;
             Dinj    0.000457;   // D_jet Lambert = 457 um
             debug   false;
@@ -172,7 +171,6 @@ subModels
         b0      2.44;       // Wave model B0 (Lambert 2019 Fig.6)
         b1      10;         // Wave model B1 (Lambert 2019 Fig.6)
         Dinj    0.000457;   // D_jet = 457 um
-        nChildren 5;        // Madabhushi (2003): five child parcels
         debug   false;
     }
 

@@ -11,11 +11,18 @@ This folder contains the curated **cross-bandwidth** post-processing assets that
 
 ## figures/
 
-_Currently a placeholder; no cross-bandwidth comparison figures have been added yet._
+- `Zhang_kernel_We3500_D10_x060mm.png`
+- `Zhang_kernel_We3500_D32_x060mm.png`
+- `Zhang_kernel_We3500_Umean_x060mm.png`
+- `Zhang_kernel_We3500_b_0_PCM_x060mm.png`
+- `Zhang_kernel_We3500_b_3Dinj_x060mm.png`
+- `Zhang_kernel_We3500_b_6Dinj_x060mm.png`
+- `Zhang_kernel_We3500_b_Dinj_x060mm.png`
+- `Zhang_kernel_We3500_count_x060mm.png`
 
 ## tables/
 
-_Currently a placeholder; no cross-bandwidth comparison tables have been added yet._
+_Currently a placeholder; no tables have been added yet._
 
 ## paraview/
 

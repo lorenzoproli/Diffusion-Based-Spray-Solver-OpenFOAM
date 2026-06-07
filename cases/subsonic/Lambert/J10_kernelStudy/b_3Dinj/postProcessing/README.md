@@ -20,7 +20,10 @@ This folder contains curated lightweight post-processing assets for this specifi
 
 ## paraview/
 
-_Reserved for ParaView colormaps, state files (`.pvsm`), presets and screenshots to be added later._
+- `j10_U_3Dinj.png`
+- `j10_Ux_3Dinj.png`
+- `j10_d_3Dinj.png`
+- `j10_p_3Dinj.png`
 
 ## scripts/
 

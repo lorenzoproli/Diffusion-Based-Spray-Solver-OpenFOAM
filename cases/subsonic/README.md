@@ -14,7 +14,6 @@ are tracked:
 
 ```
 subsonic/
-├── Zhang_case/             Original Zhang subsonic validation case (LMR = 1)
 ├── Zhang/                  Zhang kernel study (We500, We3500, We8500 × 4 bandwidths)
 └── Lambert/
     ├── J10_kernelStudy/    DBM bandwidth kernel study at J = 10

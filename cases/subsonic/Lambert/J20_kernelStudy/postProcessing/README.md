@@ -11,6 +11,8 @@ This folder contains the curated **cross-bandwidth** post-processing assets that
 
 ## figures/
 
+- `Lambert_J20_kernel_colormap_D32_30d.png`
+- `Lambert_J20_kernel_colormap_D32_60d.png`
 - `Lambert_J20_kernel_comparison_D32.png`
 - `Lambert_J20_kernel_comparison_D32_30d.png`
 - `Lambert_J20_kernel_comparison_D32_60d.png`

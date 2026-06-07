@@ -53,7 +53,7 @@ reliably from the local PDF filenames, the corresponding fields are marked as
   injector under.pdf`.
   – Gas-Liquid Orifice type Pintle (GLOP) injector study, used as a reference
   for the Liquid Jet In subsonic Gas Film (LJIGF) configuration that
-  motivates the `cases/subsonic/Zhang_case/` LMR = 1 validation setup.
+  motivates the `cases/subsonic/Zhang/` DBM kernel-study validation setup.
 
 - **Zhang, M. et al.** *Atomization dynamics of gas-liquid orifice type pintle
   injectors at different local momentum ratios*.

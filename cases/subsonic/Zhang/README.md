@@ -56,6 +56,3 @@ plots (PNG), lightweight processed summaries (CSV, JSON), ParaView
 colormaps/state files/screenshots and the Python scripts that produced them.
 Raw OpenFOAM runtime outputs remain excluded. See each `postProcessing/README.md`
 for the per-case and per-group inventories.
-
-See the parent `cases/subsonic/Zhang_case/` for the original LMR = 1
-validation case from which the kernel study was derived.

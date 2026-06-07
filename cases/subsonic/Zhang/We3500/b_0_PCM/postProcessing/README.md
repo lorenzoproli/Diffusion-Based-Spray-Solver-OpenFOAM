@@ -34,7 +34,10 @@ This folder contains curated lightweight post-processing assets for this specifi
 
 ## paraview/
 
-_Reserved for ParaView colormaps, state files (`.pvsm`), presets and screenshots to be added later._
+- `We_3500_U_PCM.png`
+- `We_3500_Up_PCM.png`
+- `We_3500_d_PCM.png`
+- `We_3500_p_PCM.png`
 
 ## scripts/
 

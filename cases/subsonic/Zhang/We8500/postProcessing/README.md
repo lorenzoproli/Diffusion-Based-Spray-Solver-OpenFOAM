@@ -11,11 +11,11 @@ This folder contains the curated **cross-bandwidth** post-processing assets that
 
 ## figures/
 
-_Currently a placeholder; no cross-bandwidth comparison figures have been added yet._
+_Currently a placeholder; no figures have been added yet._
 
 ## tables/
 
-_Currently a placeholder; no cross-bandwidth comparison tables have been added yet._
+_Currently a placeholder; no tables have been added yet._
 
 ## paraview/
 

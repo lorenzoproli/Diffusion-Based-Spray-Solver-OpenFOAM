@@ -34,11 +34,10 @@ This folder contains curated lightweight post-processing assets for this specifi
 
 ## paraview/
 
-- `Zhang_We3500_b_Dinj_diameter.png`
-- `Zhang_We3500_b_Dinj_pressure.png`
-- `Zhang_We3500_b_Dinj_velocity.png`
-- `Zhang_We3500_b_Dinj_velocity_magnitude.png`
-- `Zhang_We3500_b_Dinj_weber.png`
+- `We_3500_U_Dinj.png`
+- `We_3500_Up_Dinj.png`
+- `We_3500_d_Dinj.png`
+- `We_3500_p_Dinj.png`
 
 ## scripts/
 
