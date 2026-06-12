@@ -16,6 +16,7 @@ authors:
 version: "1.0.0"
 date-released: "2026-06-12"
 license: GPL-3.0-or-later
+doi: "10.5281/zenodo.20666067"
 repository-code: "https://github.com/lorenzoproli/Diffusion-Based-Spray-Solver-OpenFOAM"
 keywords:
   - OpenFOAM
