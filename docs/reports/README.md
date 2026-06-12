@@ -39,7 +39,7 @@ deformation-dependent drag law — is assessed against the Lambert LJICF benchma
 
 If you use the solver or refer to this work, please cite the archived software
 record (Zenodo DOI
-[10.5281/zenodo.20666067](https://doi.org/10.5281/zenodo.20666067)); see
+[10.5281/zenodo.20673033](https://doi.org/10.5281/zenodo.20673033)); see
 [`CITATION.cff`](../../CITATION.cff) in the repository root.
 
 ## Related material
