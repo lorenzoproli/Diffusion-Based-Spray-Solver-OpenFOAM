@@ -7,9 +7,9 @@ thesis.
 > **Copyright notice.** The PDF files of these papers are **not** redistributed
 > in this repository. Each entry below provides the full bibliographic
 > reference together with a DOI or publisher link; please obtain the papers
-> directly from their publishers or official repositories. The complete,
-> machine-readable bibliography is maintained in
-> [`thesis/bibliografia.bib`](../../thesis/bibliografia.bib).
+> directly from their publishers or official repositories. The full
+> bibliography is also reproduced in the thesis report under
+> [`docs/reports/`](../reports/README.md).
 
 References are grouped by topic so that each component of the solver (breakup,
 drag, source-term smoothing, evaporation) and each validation case can be
@@ -177,8 +177,8 @@ confirmed against the publisher record are flagged as `metadata to verify`.
 
 - The solver implementation that builds on these references is documented in
   the top-level [`README.md`](../../README.md).
-- The complete thesis bibliography (BibTeX) is in
-  [`thesis/bibliografia.bib`](../../thesis/bibliografia.bib).
+- The complete thesis report, including its full bibliography, is available in
+  [`docs/reports/`](../reports/README.md).
 
 ## Notes on metadata
 

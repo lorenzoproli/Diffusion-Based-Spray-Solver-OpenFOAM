@@ -126,7 +126,8 @@ Thesis-Lagrangian-Solver/
 │   └── evaporation/
 │
 ├── docs/
-│   ├── papers/
+│   ├── reports/                         # Compiled thesis report (PDF)
+│   ├── papers/                          # Curated bibliography (references only)
 │   ├── notes/
 │   └── figures/
 │
@@ -384,6 +385,15 @@ The PDF files of the papers are **not** redistributed in this repository for
 copyright reasons. Please obtain each publication from its publisher or
 official repository using the DOI or link given in
 [`docs/papers/README.md`](docs/papers/README.md).
+
+---
+
+## Thesis report
+
+The full theory, implementation and validation of the solver are documented in
+the Master's thesis report, available as a PDF in
+[`docs/reports/`](docs/reports/README.md). The LaTeX sources of the report are
+not tracked in this repository.
 
 ---
 

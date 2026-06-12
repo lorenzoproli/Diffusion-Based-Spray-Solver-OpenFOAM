@@ -125,34 +125,11 @@ src/**/Make/*Debug
 src/**/log.*
 
 # -------------------------------------------------------------------------
-# Thesis LaTeX workspace
+# Thesis LaTeX workspace (kept local only; the compiled report is published
+# under docs/reports/ instead)
 # -------------------------------------------------------------------------
-thesis/**/*.aux
-thesis/**/*.bbl
-thesis/**/*.bcf
-thesis/**/*.blg
-thesis/**/*.fdb_latexmk
-thesis/**/*.fls
-thesis/**/*.lof
-thesis/**/*.log
-thesis/**/*.lot
-thesis/**/*.out
-thesis/**/*.run.xml
-thesis/**/*.synctex.gz
-thesis/**/*.toc
-thesis/**/*.nav
-thesis/**/*.snm
-thesis/**/*.vrb
-thesis/**/*-blx.bib
-
-# Generated thesis PDFs
-thesis/**/*.pdf
-!thesis/Template_tesi.pdf
+/thesis/
 
 # Reference paper PDFs are not redistributed (copyright); keep only references
 docs/papers/*.pdf
 docs/papers/*.PDF
-
-# Local Claude state for thesis
-thesis/.claude/local/
-thesis/.claude/settings.local.json
