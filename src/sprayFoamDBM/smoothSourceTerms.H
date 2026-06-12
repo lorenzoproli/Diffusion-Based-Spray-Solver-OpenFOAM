@@ -1,3 +1,5 @@
+// Copyright (C) 2026 Lorenzo Proli, Politecnico di Torino
+// SPDX-License-Identifier: GPL-3.0-or-later
 // smoothSourceTerms.H
 // ------------------------------------------------------------------
 // Diffusion-Based Method (DBM) smoothing of Lagrangian source terms.

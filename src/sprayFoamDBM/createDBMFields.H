@@ -1,3 +1,5 @@
+// Copyright (C) 2026 Lorenzo Proli, Politecnico di Torino
+// SPDX-License-Identifier: GPL-3.0-or-later
 // createDBMFields.H
 // ------------------------------------------------------------------
 // Read DBM (Diffusion-Based Method) smoothing parameters.

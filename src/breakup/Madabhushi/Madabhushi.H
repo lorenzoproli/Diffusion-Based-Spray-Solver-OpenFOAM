@@ -6,6 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
     Copyright (C) 2011-2013 OpenFOAM Foundation
+    Copyright (C) 2026 Lorenzo Proli, Politecnico di Torino
+    SPDX-License-Identifier: GPL-3.0-or-later
 -------------------------------------------------------------------------------
     Madabhushi breakup model with Lambert ligament extension.
     Modified to support:

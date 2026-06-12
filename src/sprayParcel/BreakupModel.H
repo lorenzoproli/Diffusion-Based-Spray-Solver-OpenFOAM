@@ -7,6 +7,8 @@
 -------------------------------------------------------------------------------
     Copyright (C) 2011-2016 OpenFOAM Foundation
     Copyright (C) 2020 OpenCFD Ltd.
+    Copyright (C) 2026 Lorenzo Proli, Politecnico di Torino
+    SPDX-License-Identifier: GPL-3.0-or-later
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.

@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "Diffusion-Based Spray Solver for OpenFOAM"
+abstract: >
+  A custom OpenFOAM Lagrangian spray solver implementing the Madabhushi–Lambert
+  breakup model for liquid jets in crossflow (LJICF) and gas-film (LJIGF/GLOP)
+  configurations. The solver couples the breakup model with a Diffusion-Based
+  Method (DBM) for momentum source-term smoothing, eliminating the velocity-locking
+  artefact of the standard Particle Centroid Method (PCM) in dense spray regions.
+authors:
+  - family-names: Proli
+    given-names: Lorenzo
+    email: lorenzoproli00@gmail.com
+    affiliation: "Politecnico di Torino"
+version: "1.0.0"
+date-released: "2026-06-12"
+license: GPL-3.0-or-later
+repository-code: "https://github.com/lorenzoproli/Diffusion-Based-Spray-Solver-OpenFOAM"
+keywords:
+  - OpenFOAM
+  - Lagrangian spray
+  - liquid jet in crossflow
+  - breakup model
+  - diffusion-based method
+  - computational fluid dynamics

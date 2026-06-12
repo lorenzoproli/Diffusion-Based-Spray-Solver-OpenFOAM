@@ -5,6 +5,9 @@
     \\  /    A nd           |
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
+    Copyright (C) 2026 Lorenzo Proli, Politecnico di Torino
+    SPDX-License-Identifier: GPL-3.0-or-later
+-------------------------------------------------------------------------------
     Madabhushi custom drag force for jet-in-crossflow breakup
 
     Physical model backbone:

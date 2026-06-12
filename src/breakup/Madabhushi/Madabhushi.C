@@ -5,6 +5,9 @@
     \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
+    Copyright (C) 2026 Lorenzo Proli, Politecnico di Torino
+    SPDX-License-Identifier: GPL-3.0-or-later
+-------------------------------------------------------------------------------
     Madabhushi breakup model — enhanced crossflow version
 
     Physical model backbone:

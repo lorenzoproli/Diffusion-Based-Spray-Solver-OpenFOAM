@@ -1,5 +1,7 @@
 # A Diffusion-Based Lagrangian Spray Solver in OpenFOAM for Liquid Jet Atomization in Subsonic Crossflow
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 *Custom OpenFOAM breakup, drag and Lagrangian source-term smoothing (DBM) models for spray atomization, validated against the Zhang (LJIGF) and Lambert (LJICF) reference cases.*
 
 This repository contains the development and validation of a custom Lagrangian spray solver based on OpenFOAM, carried out within a Master's thesis in Aerospace Engineering at Politecnico di Torino.
@@ -381,3 +383,36 @@ The PDF files of the papers are **not** redistributed in this repository for
 copyright reasons. Please obtain each publication from its publisher or
 official repository using the DOI or link given in
 [`docs/papers/README.md`](docs/papers/README.md).
+
+---
+
+## License
+
+Copyright (C) 2026 Lorenzo Proli, Politecnico di Torino.
+
+This project is licensed under the **GNU General Public License v3.0 or later**
+(GPL-3.0-or-later). See the [`LICENSE`](LICENSE) file for the full text.
+
+This solver is derived from [OpenFOAM](https://www.openfoam.com), which is
+itself distributed under the GPL-3.0-or-later license
+(© OpenFOAM Foundation / OpenCFD Ltd.). Files adapted from OpenFOAM retain
+their original copyright notices alongside the new copyright statement.
+
+---
+
+## Citation
+
+If you use this software in your research, please cite it using the metadata
+in [`CITATION.cff`](CITATION.cff).
+
+```bibtex
+@software{proli2026dbm,
+  author    = {Proli, Lorenzo},
+  title     = {Diffusion-Based Spray Solver for OpenFOAM},
+  year      = {2026},
+  version   = {1.0.0},
+  publisher = {GitHub},
+  url       = {https://github.com/lorenzoproli/Diffusion-Based-Spray-Solver-OpenFOAM},
+  license   = {GPL-3.0-or-later}
+}
+```

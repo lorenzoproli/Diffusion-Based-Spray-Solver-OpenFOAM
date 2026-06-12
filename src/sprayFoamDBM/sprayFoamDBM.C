@@ -5,6 +5,9 @@
     \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
+    Copyright (C) 2026 Lorenzo Proli, Politecnico di Torino
+    SPDX-License-Identifier: GPL-3.0-or-later
+-------------------------------------------------------------------------------
     sprayFoamDBM - sprayFoam with Diffusion-Based source-term smoothing.
 
     Identical to standard sprayFoam except that, after parcels.evolve(),
