@@ -374,6 +374,10 @@ The repository keeps a curated bibliography of the publications that support
 the implementation and validation of the solver in
 [`docs/papers/README.md`](docs/papers/README.md). The entries are grouped by
 topic (LJICF/LJIGF experiments, breakup models, drag modelling, coupling and
-smoothing methods, evaporation and supersonic references) and document the
-papers that are physically tracked under `docs/papers/` together with any
-external citations used in the thesis.
+smoothing methods, evaporation and supersonic references) and provide full
+bibliographic references with DOIs or publisher links for every source.
+
+The PDF files of the papers are **not** redistributed in this repository for
+copyright reasons. Please obtain each publication from its publisher or
+official repository using the DOI or link given in
+[`docs/papers/README.md`](docs/papers/README.md).

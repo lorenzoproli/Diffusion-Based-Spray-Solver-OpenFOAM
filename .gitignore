@@ -149,6 +149,10 @@ thesis/**/*-blx.bib
 thesis/**/*.pdf
 !thesis/Template_tesi.pdf
 
+# Reference paper PDFs are not redistributed (copyright); keep only references
+docs/papers/*.pdf
+docs/papers/*.PDF
+
 # Local Claude state for thesis
 thesis/.claude/local/
 thesis/.claude/settings.local.json
