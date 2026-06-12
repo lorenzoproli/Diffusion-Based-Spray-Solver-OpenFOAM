@@ -1,7 +1,7 @@
 # A Diffusion-Based Lagrangian Spray Solver in OpenFOAM for Liquid Jet Atomization in Subsonic Crossflow
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20673033.svg)](https://doi.org/10.5281/zenodo.20673033)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20666066.svg)](https://doi.org/10.5281/zenodo.20666066)
 
 *Custom OpenFOAM breakup, drag and Lagrangian source-term smoothing (DBM) models for spray atomization, validated against the Zhang (LJIGF) and Lambert (LJICF) reference cases.*
 
@@ -423,8 +423,8 @@ in [`CITATION.cff`](CITATION.cff).
   year      = {2026},
   version   = {1.1.0},
   publisher = {Zenodo},
-  doi       = {10.5281/zenodo.20673033},
-  url       = {https://doi.org/10.5281/zenodo.20673033},
+  doi       = {10.5281/zenodo.20666066},
+  url       = {https://doi.org/10.5281/zenodo.20666066},
   license   = {GPL-3.0-or-later}
 }
 ```
