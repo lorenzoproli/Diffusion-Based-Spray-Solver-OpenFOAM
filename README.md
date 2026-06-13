@@ -421,7 +421,7 @@ in [`CITATION.cff`](CITATION.cff).
   author    = {Proli, Lorenzo},
   title     = {Diffusion-Based Spray Solver for OpenFOAM},
   year      = {2026},
-  version   = {1.1.0},
+  version   = {1.1.1},
   publisher = {Zenodo},
   doi       = {10.5281/zenodo.20666066},
   url       = {https://doi.org/10.5281/zenodo.20666066},

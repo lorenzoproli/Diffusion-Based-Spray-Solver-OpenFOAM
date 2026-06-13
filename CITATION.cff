@@ -13,7 +13,7 @@ authors:
     given-names: Lorenzo
     email: lorenzoproli00@gmail.com
     affiliation: "Politecnico di Torino"
-version: "1.1.0"
+version: "1.1.1"
 date-released: "2026-06-13"
 license: GPL-3.0-or-later
 doi: "10.5281/zenodo.20666066"
