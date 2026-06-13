@@ -58,6 +58,7 @@ reconstructPar*
 # Restart and backup files
 *~
 *.bak
+*.bak*
 *.old
 *.tmp
 
@@ -98,6 +99,7 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+.claude/
 *:Zone.Identifier
 
 # ============================================================
